@@ -9,10 +9,6 @@ Aplicar métodos de anonimização e exclusão de dados sensíveis já na leitur
     - Nome completo do paciente
     - Data de nascimento
 
-- **Anonimização:**
-    - Número do prontuário
-    - Número de atendimento
-
 - **Permanência:**
     - Nome e CRM do médico atendente
     - Idade do paciente
@@ -20,16 +16,17 @@ Aplicar métodos de anonimização e exclusão de dados sensíveis já na leitur
     - Bairro
     - Cidade
     - Estado
+    - Número do prontuário
+    - Número de atendimento
 
 ## Justificativa
 Dados que identificam expressamente o paciente não serão necessários para compor análise, como: nome completo e data de nascimento. São dados sensíveis que são utilizados no contexto hospitalar para assistência segura e não para análise de resultados;
-Os dado de identificação via sistema operacional (cadastro) serão anonimizados já na leitura na fonte, isso evita exposição;
-Já os dados necessários pará análise de perfil serão mantidos conforme descritos acima.
+Já os dados necessários pará análise de perfil serão mantidos conforme descritos acima, pois há necessidade de acesso pelo responsável e também para análise operacional de consulta do prontuário no sistema MV.
 
 ## Consequências
 - **Positivas:**
     - Dados permanentes melhoram o entendimento do perfil de atendimento;
-    - Dados anonimizados evitam exposição desnecessária.
+    - Controle de acesso pelo responsável.
     
 - **Negativas:**
     - Exigência de controle na disponibilização do painel para visualização quando houver necessidade de analisar performance por médico (pseudonimização futura);
