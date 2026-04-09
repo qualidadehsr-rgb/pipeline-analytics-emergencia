@@ -1,11 +1,18 @@
 import os
 import sys
 import polars as pl
+import logging
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
 #carregar variáveis de ambiente
 load_dotenv()
+
+#configuração logs
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 #buscar credencial de acesso
 project_id = os.getenv("PROJECT_ID")
@@ -25,6 +32,13 @@ df = pl.read_excel(caminho_arquivo)
 
 #filtrar empresa
 df = df.filter(pl.col("EMPRESA") == "HSR")
+linhas_hsr = len(df)
+logging.info(f'Selecionado HSR: {linhas_hsr} linhas.')
+
+#remover atendimentos duplicados
+df = df.unique(subset=["CD_ATENDIMENTO"], keep="first")
+linhas_hsr_unicas = len(df)
+logging.info(f'Removido {linhas_hsr - linhas_hsr_unicas} registros duplicados!\n{linhas_hsr_unicas} linhas restantes.')
 
 #lista de colunas sensíveis
 colunas_sensiveis = ['NM_PACIENTE', 'DT_NASC', 'ENDERECO',
@@ -35,38 +49,26 @@ colunas_sensiveis = ['NM_PACIENTE', 'DT_NASC', 'ENDERECO',
 #excluir colunas sensíveis
 df = df.drop(colunas_sensiveis)
 
-#correção texto de classificação de risco
-df = df.with_columns(
-    pl.col("COR_CLASSIF").str.replace("AMARELO1", "AMARELO")
+#converter colunas em string
+df = df.cast(pl.Utf8)
+
+#========================================
+# Carga no BigQuery
+#========================================
+
+#configuração da carga
+job_config = bigquery.LoadJobConfig(
+    write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+    autodetect=False,
+    schema=[bigquery.SchemaField(col, "STRING") for col in df.columns]
 )
 
-#separação do nome do prestador do CRM, ficando apenas nome
-df = df.with_columns(
-    pl.col("PRESTADOR").str.split(" - ").list.last()
-)
+#tabela de destino
+destino = f'{project_id}.raw.atendimentos'
 
-#configuração da coluna SERVIÇO
-df = df.with_columns(
-    pl.when(
-        (pl.col("IDADE") <= 14) &
-        (pl.col("ESPECIALIDADE") != "CIRURGIA GERAL") &
-        (pl.col("ESPECIALIDADE") != "ORTOPEDIA/TRAUMATOLOGIA")
-    ).then(pl.lit("PEDIATRIA"))
-      .when(
-          (pl.col("ESPECIALIDADE") == "CIRURGIA GERAL")
-      ).then(pl.lit("CIRURGIA GERAL"))
-      .when(
-          (pl.col("ESPECIALIDADE") == "ORTOPEDIA/TRAUMATOLOGIA")
-      ).then(pl.lit("ORTOPEDIA/TRAUMATOLOGIA"))
-      .when(
-          (pl.col("IDADE") >= 15) &
-          (
-          (pl.col("ESPECIALIDADE") == "CLINICA MEDICA") |
-          (pl.col("ESPECIALIDADE") == "GENERALISTA")
-          )
-      ).then(pl.lit("CLINICA MEDICA"))
-      .when(
-          (pl.col("ESPECIALIDADE") == "MEDICO CARDIOLOGISTA")
-      ).then(pl.lit("CARDIOLOGIA"))
-      .otherwise(pl.lit("OUTROS")).alias("SERVICO")
-)
+#execução da carga
+job = cliente.load_table_from_dataframe(df.to_pandas(), destino, job_config=job_config)
+
+#aguardar
+job.result()
+logging.info(f'Carga realizada com sucesso: {job.output_rows} linhas carregadas em {destino}!')
