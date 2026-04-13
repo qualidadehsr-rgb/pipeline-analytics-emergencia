@@ -20,3 +20,8 @@ models:
       +materialized: table
     marts:
       +materialized: table
+
+seeds: 
+  pipeline_analytics:
+    dim_leitos:
+      +delimiter: ";"
