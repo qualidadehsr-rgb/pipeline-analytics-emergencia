@@ -3,7 +3,7 @@ with source as (
 ),
 transformado as(
     select
-        Atendimento,
+        {{cast_inteiro('Atendimento')}} as Atendimento,
         Destino
     from source
 )
