@@ -229,3 +229,24 @@ EX GO 01;TERREO;Unidade de Internação
 SUITE 08;TERREO;Unidade de Internação
 SUITE 09;TERREO;Unidade de Internação
 APT 12;TERREO;Unidade de Internação
+APT 10;TERREO;Unidade de Internação
+APT 102;1º ANDAR 1;Unidade de Internação
+APT 220;2º ANDAR 2;Unidade de Internação
+APTO 121;1º ANDAR 2;Unidade de Internação
+APTO138V;1º ANDAR 2;Unidade de Internação
+ENF 307C;0º ANDAR SS;Unidade de Internação
+EXINT 12;EXTRA INTERNACAO;Unidade de Internação
+HEMOD 1A;HEMODINAMICA;Unidade de Internação
+HEMOD 1B;HEMODINAMICA;Unidade de Internação
+HEMOD 1C;HEMODINAMICA;Unidade de Internação
+HEMOD 2B;HEMODINAMICA;Unidade de Internação
+HEMOD 2C;HEMODINAMICA;Unidade de Internação
+LEITO 01;OBSERVACAO PA;Unidade de Internação
+POLT 22;OBSERVACAO PA;Unidade de Internação
+UCO 01;UTI - CORONARIANA;UTI
+UCO 18;UTI - CORONARIANA;UTI
+UNP 02;UTI INFANTIL;UTI
+UTIA1 01;UTI A1;UTI
+UTIA2 21;UTI A2;UTI
+UTIA2 26;UTI A2;UTI
+UTIB 01;UTI B - CIRURGICA;UTI
