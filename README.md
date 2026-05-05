@@ -28,7 +28,24 @@ pipeline-analytics-emergencia/
 └── README.md         # Apresentação do projeto
 ```
 ## Como Rodar
-> Em construção — será atualizado após configuração do ambiente.
+
+### Pré-requisitos
+- Acesso ao Cloud Storage do projeto `pipeline-analytics-emergencia`
+- Acesso à URL do Cloud Run
+
+### Execução mensal
+1. Fazer upload dos 3 relatórios no Cloud Storage via navegador
+2. Acessar a URL do Cloud Run para acionar o pipeline
+3. Acessar a interface de curadoria para revisar os casos suspeitos de conversão
+4. Verificar o Power BI com os resultados atualizados
+
+### Desenvolvimento local
+```
+venv activate pipeline-analytics
+cd dbt/
+dbt run
+dbt test
+```
 
 ## Conventional Commits
 | Prefixo | Quando usar |
@@ -49,3 +66,7 @@ git push
 ## Documentação
 - [ADR-001 — Arquitetura Geral](docs/adr/ADR-001-arquitetura-geral.md)
 - [ADR-002 — LGPD e Dados Sensíveis](docs/adr/ADR-002-lgpd-dados-sensiveis.md)
+- [ADR-003 — Autenticação GCP](docs/adr/ADR-003-autenticacao-gcp.md)
+- [ADR-004 — Categoria Outros Serviço](docs/adr/ADR-004-categoria-outros-servico.md)
+- [ADR-005 — Migração da Ingestão para Cloud Storage + Cloud Run](docs/adr/ADR-005-migracao-ingestao-cloud.md)
+- [ADR-006 — Interface de Curadoria de Suspeitos de Conversão](docs/adr/ADR-006-curadoria-suspeitos-conversao.md)
