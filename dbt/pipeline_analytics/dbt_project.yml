@@ -18,8 +18,10 @@ models:
   pipeline_analytics:
     staging:
       +materialized: table
+      +schema: staged
     marts:
       +materialized: table
+      +schema: marts
 
 seeds: 
   pipeline_analytics:

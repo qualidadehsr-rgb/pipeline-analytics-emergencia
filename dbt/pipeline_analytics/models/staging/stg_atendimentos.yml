@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: stg_atendimentos
+    columns:
+      - name: CD_PACIENTE
+        tests:
+          - not_null
+      - name: CD_ATENDIMENTO
+        tests:
+          - not_null
+          - unique
+      - name: DT_ATENDIMENTO
+        tests:
+          - not_null
+      - name: DT_HR_TOTEM_RECEP
+        tests:
+          - not_null
+      - name: ESPECIALIDADE
+        tests:
+          - not_null

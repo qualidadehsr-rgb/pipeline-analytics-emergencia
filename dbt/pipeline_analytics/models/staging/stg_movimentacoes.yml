@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: stg_movimentacoes
+    columns:
+      - name: Atendimento
+        tests:
+          - not_null
+      - name: Hora
+        tests:
+          - not_null
+      - name: Destino
+        tests:
+          - not_null

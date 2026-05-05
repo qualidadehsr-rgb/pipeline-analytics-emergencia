@@ -1,64 +1,151 @@
 with atendimentos as (
     select * from {{ref('stg_atendimentos')}}
 ),
+
 internacoes as (
     select * from {{ref('stg_internacoes')}}
 ),
+
 movimentacoes as (
     select * from {{ref('stg_movimentacoes')}}
 ),
+
 leitos as (
     select * from {{ref('dim_leitos')}}
 ),
-numerado as (
+
+ultima_movimentacao as(
     select *,
         row_number() over(
-            partition by CD_PACIENTE, DT_ATENDIMENTO
-            order by DT_HR_TOTEM_RECEP desc
-        ) as candidato_internacao
-    from atendimentos
+            partition by Atendimento
+            order by Hora desc
+        ) as ranking
+    from movimentacoes
+    qualify ranking = 1
 ),
-ultimo_atendimento as (
-    select * from numerado
-    where candidato_internacao = 1
+
+movimentacao_enriquecida as(
+    select *
+    from ultima_movimentacao as u
+    left join leitos as l
+    on u.destino = l.leito
 ),
-conversoes as (
+
+internacao_leito_certo as (
     select
-       u.CD_ATENDIMENTO as atend_PA,
-       u.CD_PACIENTE,
-       u.IDADE,
-       u.SEXO,
-       u.CEP,
-       u.CIDADE,
-       u.UF,
-       u.CONVENIO,
-       u.SERVICO,
-       u.COR_CLASSIF,
-       u.PRESTADOR,
-       u.ESPECIALIDADE,
-       u.CID,
-       u.MOTIVO_ALTA,
-       u.DT_ATENDIMENTO,
-       u.DT_HR_TOTEM_RECEP,
-       u.DT_HR_CLASSIF_RISCO,
-       u.INI_ATD_MEDICO,
-       u.FIM_ATD_MEDICO,
-       u.DT_HR_ALTA,
-       i.ATENDIMENTO as atend_internacao,
-       i.ORIGEM_ATEND,
-       m.Destino as LEITO,
-       l.Unidade,
-       l.Tipo,
-       case when i.ATENDIMENTO is not null then 1 else 0 end as fl_conversao
-    from ultimo_atendimento as u
-    left join internacoes as i
-    on u.CD_PACIENTE = i.COD_PACIENTE and
-    date(i.DT_HR_ATENDIMENTO) between date(u.DT_ATENDIMENTO) and
-    date_add(date(u.DT_ATENDIMENTO), interval 1 day) and
-    i.ORIGEM_ATEND in ('EMERGENCIA ADULTO', 'EMERGENCIA INFANTIL')
-    left join movimentacoes as m
+    i.ATENDIMENTO,
+    i.COD_PACIENTE,
+    i.ORIGEM_ATEND,
+    i.DT_HR_ATENDIMENTO,
+    coalesce(m.Destino, i.LEITO) as LEITO,
+    coalesce(m.Unidade, i.UNIDADE) as UNIDADE,
+    l.Tipo
+    from internacoes as i
+    left join movimentacao_enriquecida as m
     on i.ATENDIMENTO = m.Atendimento
     left join leitos as l
-    on m.destino = l.leito
+    on coalesce(m.Destino, i.LEITO) = l.leito
+),
+
+ultimo_atendimento as (
+    select *,
+    row_number() over(
+        partition by CD_PACIENTE, DT_ATENDIMENTO
+        order by DT_HR_TOTEM_RECEP desc
+    ) as ranking
+    from atendimentos
+    qualify ranking = 1
+),
+
+atendimento_com_internacoes as(
+    select
+    u.CD_ATENDIMENTO,
+    lc.ATENDIMENTO,
+    lc.ORIGEM_ATEND,
+    lc.LEITO as Destino,
+    lc.UNIDADE as Unidade,
+    lc.Tipo
+    from ultimo_atendimento as u
+    left join internacao_leito_certo as lc
+    on u.CD_PACIENTE = lc.COD_PACIENTE
+    and date(lc.DT_HR_ATENDIMENTO) between date(u.DT_ATENDIMENTO)
+    and date_add(date(u.DT_ATENDIMENTO), interval 1 day)
+    and lc.ORIGEM_ATEND in ('EMERGENCIA ADULTO', 'EMERGENCIA INFANTIL')
+    qualify row_number() over(
+        partition by lc.ATENDIMENTO
+        order by timestamp_diff(lc.DT_HR_ATENDIMENTO, u.DT_HR_TOTEM_RECEP, minute) asc
+    ) = 1
+),
+
+possivel_conversao as(
+    select
+    u.CD_ATENDIMENTO,
+    lc.ATENDIMENTO,
+    lc.ORIGEM_ATEND,
+    lc.LEITO as Destino,
+    lc.UNIDADE as Unidade,
+    lc.Tipo
+    from ultimo_atendimento as u
+    left join internacao_leito_certo as lc
+    on u.CD_PACIENTE = lc.COD_PACIENTE
+    and date(lc.DT_HR_ATENDIMENTO) between date(u.DT_ATENDIMENTO)
+    and date_add(date(u.DT_ATENDIMENTO), interval 1 day)
+    and lc.ORIGEM_ATEND not in ('EMERGENCIA ADULTO', 'EMERGENCIA INFANTIL')
+    qualify row_number() over(
+        partition by lc.ATENDIMENTO
+        order by timestamp_diff(lc.DT_HR_ATENDIMENTO, u.DT_HR_TOTEM_RECEP, minute) asc
+    ) = 1
+),
+
+retorno_48h as(
+    select distinct a1.CD_ATENDIMENTO
+    from atendimentos as a1
+    inner join atendimentos as a2
+    on a1.CD_PACIENTE = a2.CD_PACIENTE
+    and a1.CID = a2.CID
+    and a2.DT_ATENDIMENTO > a1.DT_ATENDIMENTO
+    and a2.DT_ATENDIMENTO <= date_add(a1.DT_ATENDIMENTO, interval 2 day)
+    and a1.CD_ATENDIMENTO != a2.CD_ATENDIMENTO
+),
+
+final as (
+    select
+       a.CD_ATENDIMENTO as atend_PA,
+       a.CD_PACIENTE,
+       a.IDADE,
+       a.SEXO,
+       a.CEP,
+       a.CIDADE,
+       a.UF,
+       a.CONVENIO,
+       a.SERVICO,
+       a.COR_CLASSIF,
+       a.PRESTADOR,
+       a.ESPECIALIDADE,
+       a.CID,
+       a.MOTIVO_ALTA,
+       a.DT_ATENDIMENTO,
+       a.DT_HR_TOTEM_RECEP,
+       a.DT_HR_CLASSIF_RISCO,
+       a.INI_ATD_MEDICO,
+       a.FIM_ATD_MEDICO,
+       a.DT_HR_ALTA,
+       ai.ATENDIMENTO as atend_internacao,
+       ai.ORIGEM_ATEND,
+       ai.Destino,
+       ai.Unidade,
+       ai.Tipo,
+       case when ai.ATENDIMENTO is not null then 1 else 0 end as fl_conversao,
+       case when r.CD_ATENDIMENTO is not null then 1 else 0 end as fl_retorno_48h,
+       case when a.MOTIVO_ALTA = 'EVASAO' then 1 else 0 end as fl_evasao,
+       case when pc.CD_ATENDIMENTO is not null then 1 else 0 end as fl_suspeito_conversao
+    from atendimentos as a
+    left join atendimento_com_internacoes as ai
+    on a.CD_ATENDIMENTO = ai.CD_ATENDIMENTO
+    left join retorno_48h as r
+    on a.CD_ATENDIMENTO = r.CD_ATENDIMENTO
+    left join possivel_conversao as pc
+    on a.CD_ATENDIMENTO = pc.CD_ATENDIMENTO
 )
-select * from conversoes
+
+select * from final

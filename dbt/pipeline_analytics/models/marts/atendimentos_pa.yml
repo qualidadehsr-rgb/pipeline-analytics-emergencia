@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: atendimentos_pa
+    columns:
+      - name: atend_PA
+        tests:
+          - not_null
+          - unique
+      - name: fl_conversao
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0,1]
+                quote: false
+      - name: fl_evasao
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0,1]
+                quote: false
+      - name: fl_retorno_48h
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0,1]
+                quote: false

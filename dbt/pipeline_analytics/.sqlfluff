@@ -1,0 +1,9 @@
+[sqlfluff]
+templater = dbt
+dialect = bigquery
+exclude_rules = CP02, CP01, LT08, LT05, LT02, LT03, LT01, ST06, JJ01
+
+[sqlfluff:templater:dbt]
+project_dir = ./
+profiles_dir = C:\Users\edy85\.dbt
+profile = pipeline_analytics

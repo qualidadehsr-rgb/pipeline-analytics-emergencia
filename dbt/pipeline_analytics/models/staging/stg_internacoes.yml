@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: stg_internacoes
+    columns:
+      - name: COD_PACIENTE
+        tests:
+          - not_null
+      - name: ATENDIMENTO
+        tests:
+          - not_null
+          - unique
+      - name: DT_HR_ATENDIMENTO
+        tests:
+          - not_null
+      - name: ORIGEM_ATEND
+        tests:
+          - not_null
+
