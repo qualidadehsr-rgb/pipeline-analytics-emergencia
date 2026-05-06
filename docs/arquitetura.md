@@ -18,9 +18,10 @@ Staged e Marts - antes de chegarem para consumo no BI.
 | dbt Core | 1.11.8 | Responsável pelas transformações necessárias para qualidade dos dados e atendimento às regras de negócio |
 | BigQuery | Gerenciado pelo GCP | Armazenamento dos dados de acordo com suas camadas |
 | Cloud Storage | Gerenciado pelo GCP | Ponto de entrada dos arquivos mensais — substitui a pasta de rede local |
-| Cloud Run | Gerenciado pelo GCP | Execução do pipeline na nuvem — elimina dependência de máquina local |
+| Cloud Run Service | Gerenciado pelo GCP | Recebe eventos do Eventarc e executa o pipeline na nuvem — elimina dependência de máquina local |
+| Eventarc | Gerenciado pelo GCP | Detecta o upload de arquivos no Cloud Storage e dispara automaticamente o Cloud Run Service |
 | GitHub | Cloud | Versionamento de código |
-| Power BI | ??? | Visualização dos resultados |
+| Power BI | — | Visualização dos resultados |
 
 ## Camadas de Dados
 
@@ -53,11 +54,12 @@ transformados e saem prontos para consumo do BI.
 
 ## Fluxo de Execução
 
-1. Responsável pela operação faz upload dos 3 relatórios mensais no Cloud Storage 
-   via navegador
-2. Acessa a URL do Cloud Run para acionar o pipeline
-3. Cloud Run executa o script Python — lê os arquivos do Cloud Storage, aplica 
-   tratamentos de LGPD, carrega no BigQuery Raw e registra o log de execução
+1. Responsável pela operação faz upload dos 3 relatórios mensais no bucket 
+   `pipeline-analytics-emergencia-ingestao` no Cloud Storage via navegador
+2. Eventarc detecta automaticamente cada upload e dispara o Cloud Run Service
+3. Cloud Run Service executa o script Python correspondente — lê o arquivo do 
+   Cloud Storage, aplica tratamentos de LGPD, carrega no BigQuery Raw e registra 
+   o log de execução
 4. dbt executa as transformações — Raw → Staged → Marts
 5. Responsável técnico acessa a interface de curadoria para revisar os casos 
    suspeitos de conversão e registrar as decisões na tabela `curadoria_conversao`
