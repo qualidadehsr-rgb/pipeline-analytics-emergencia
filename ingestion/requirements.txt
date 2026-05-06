@@ -2,6 +2,7 @@ polars==1.39.3
 google-cloud-bigquery==3.41.0
 python-dotenv==1.2.2
 pyarrow==23.0.1
-google-cloud-storage==3.10.1
-fastexcel==0.20.2
-pandas==2.3.3
+google-cloud-storage==2.19.0
+fastexcel==0.13.0
+pandas==2.2.3
+flask==3.1.0
