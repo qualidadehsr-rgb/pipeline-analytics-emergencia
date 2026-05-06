@@ -24,13 +24,15 @@ def ingestao():
         logging.error("Requisição sem corpo JSON!")
         return "Bad Request", 400
 
+    # log do evento completo para diagnóstico
+    logging.info(f"Evento recebido: {envelope}")
+
     # extração dos dados do evento do Cloud Storage
-    atributos = envelope.get("message", {}).get("attributes", {})
-    bucket_nome = atributos.get("bucketId")
-    blob_nome = atributos.get("objectId")
+    bucket_nome = envelope.get("bucket")
+    blob_nome = envelope.get("name")
 
     if not bucket_nome or not blob_nome:
-        logging.error("Evento sem bucketId ou objectId!")
+        logging.error("Evento sem bucket ou name!")
         return "Bad Request", 400
 
     # montagem do caminho completo no Cloud Storage
