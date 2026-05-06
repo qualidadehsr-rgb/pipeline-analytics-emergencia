@@ -30,21 +30,19 @@ pipeline-analytics-emergencia/
 ## Como Rodar
 
 ### Pré-requisitos
-- Acesso ao Cloud Storage do projeto `pipeline-analytics-emergencia`
-- Acesso à URL do Cloud Run
+- Acesso ao bucket `pipeline-analytics-emergencia-ingestao` no Cloud Storage
 
 ### Execução mensal
-1. Fazer upload dos 3 relatórios no Cloud Storage via navegador
-2. Acessar a URL do Cloud Run para acionar o pipeline
-3. Acessar a interface de curadoria para revisar os casos suspeitos de conversão
+1. Baixar os 3 relatórios do sistema hospitalar (atendimentos, internações, movimentações)
+2. Fazer upload dos arquivos no bucket `pipeline-analytics-emergencia-ingestao` via console do GCP
+3. O pipeline dispara automaticamente — nenhuma ação técnica adicional é necessária
 4. Verificar o Power BI com os resultados atualizados
 
 ### Desenvolvimento local
 ```
-venv activate pipeline-analytics
-cd dbt/
+cd dbt/pipeline_analytics
 dbt run
-dbt test
+dbt test    
 ```
 
 ## Conventional Commits
@@ -70,3 +68,4 @@ git push
 - [ADR-004 — Categoria Outros Serviço](docs/adr/ADR-004-categoria-outros-servico.md)
 - [ADR-005 — Migração da Ingestão para Cloud Storage + Cloud Run](docs/adr/ADR-005-migracao-ingestao-cloud.md)
 - [ADR-006 — Interface de Curadoria de Suspeitos de Conversão](docs/adr/ADR-006-curadoria-suspeitos-conversao.md)
+- [ADR-007 — Migração de Cloud Run Job para Service com Eventarc](docs/adr/ADR-007-cloud-run-service-eventarc.md)
