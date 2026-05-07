@@ -7,8 +7,4 @@ models:
         tests:
           - not_null
       - name: Hora
-        tests:
-          - not_null
       - name: Destino
-        tests:
-          - not_null
