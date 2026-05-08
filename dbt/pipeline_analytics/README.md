@@ -16,7 +16,7 @@ dbt/
 │   └── marts/            # Modelos de negócio — leem do Staged
 │       └── atendimentos_pa.sql
 ├── seeds/                # Dados de referência estáticos
-│   └── dim_leitos.csv
+│   └── dim_leitos.csv    # Cadastro de referência para as movimentações de leitos no hospital
 ├── macros/               # Macros reutilizáveis
 └── dbt_project.yml       # Configuração do projeto
 ```
@@ -56,6 +56,14 @@ dbt test
 dbt docs generate
 dbt docs serve
 ```
+
+## Testes
+
+O projeto conta com 21 testes automatizados:
+
+- `not_null` e `unique` nos campos-chave de staging e marts
+- `accepted_values` nas flags binárias (0 ou 1)
+- Teste singular `movimentacoes_nulos_invalidos` — valida que nenhuma linha com número de atendimento válido possui `Hora` ou `Destino` nulos
 
 ## Configuração
 O projeto utiliza macro `generate_schema_name` para roteamento correto 
