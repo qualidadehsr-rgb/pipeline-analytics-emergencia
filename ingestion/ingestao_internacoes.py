@@ -22,13 +22,24 @@ cliente = bigquery.Client(project=project_id)
 #caminho do arquivo excel
 caminho_arquivo = sys.argv[1]
 
+#separa o nome do arquivo do caminho dele
+nome_arquivo = os.path.basename(caminho_arquivo)
+
+#separa o nome do arquivo por "_"
+periodo = nome_arquivo.split("_")
+
+#limpa o mês
+periodo_mes = periodo[2].replace(".xlsx", "")
+
+#unifica o ano ao mês
+competencia = "-".join([periodo[1], periodo_mes])
+
 #leitura do arquivo
 df = pl.read_excel(caminho_arquivo)
 linhas_hsr = len(df)
 logging.info(f'{linhas_hsr} linhas carregadas!')
-#========================================
+
 # TRATAMENTO DOS DADOS
-#========================================
 
 #verificar e remover atendimentos duplicados
 df = df.unique(subset=["ATENDIMENTO"], keep="first")
@@ -47,15 +58,16 @@ df = df.drop(colunas_deletadas)
 #converter colunas em strings
 df = df.cast(pl.Utf8)
 
-#========================================
-# Carga no BigQuery
-#========================================
+#cria coluna da competência no Dataframe
+df = df.with_columns(pl.lit(competencia).alias("competencia"))
+
+# CARGA NO BIGQUERY
 
 #configuração da carga
 job_config = bigquery.LoadJobConfig(
-    write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE,
+    write_disposition = bigquery.WriteDisposition.WRITE_APPEND,
     autodetect=False,
-    schema=[bigquery.SchemaField(col, "STRING") for col in df.columns]
+    schema=[bigquery.SchemaField(col, "STRING") for col in df.columns],
 )
 
 #tabela_destino

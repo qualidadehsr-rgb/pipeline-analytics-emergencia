@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import subprocess
+import threading
 from flask import Flask, request
 from google.cloud import storage
 
@@ -58,10 +59,14 @@ def ingestao():
         logging.error(f"Arquivo não reconhecido: {nome_arquivo}")
         return "Arquivo não reconhecido", 400
 
-    # execução do script de ingestão correspondente
-    logging.info(f"Iniciando ingestão: {script} para {nome_arquivo}")
-    subprocess.run(["python", script, caminho_local], check=True)
-    logging.info("Ingestão concluída com sucesso!")
+    def processar(script, caminho_local, nome_arquivo):
+        # execução do script de ingestão correspondente
+        logging.info(f"Iniciando ingestão: {script} para {nome_arquivo}")
+        subprocess.run(["python", script, caminho_local], check=True)
+        logging.info("Ingestão concluída com sucesso!")
+    
+    thread = threading.Thread(target=processar, args=(script, caminho_local, nome_arquivo))
+    thread.start()
     return "OK", 200
 
 # ponto de entrada principal — inicia o servidor Flask

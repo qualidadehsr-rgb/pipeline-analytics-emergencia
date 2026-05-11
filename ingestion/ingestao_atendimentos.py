@@ -23,6 +23,18 @@ cliente = bigquery.Client(project=project_id)
 #caminho do arquivo excel
 caminho_arquivo = sys.argv[1]
 
+#separa o nome do arquivo do caminho dele
+nome_arquivo = os.path.basename(caminho_arquivo)
+
+#separa o nome do arquivo por "_"
+periodo = nome_arquivo.split("_")
+
+#limpa o mês
+periodo_mes = periodo[2].replace(".xlsx", "")
+
+#unifica o ano ao mês
+competencia = "-".join([periodo[1], periodo_mes])
+
 #leitura do arquivo excel
 df = pl.read_excel(caminho_arquivo)
 
@@ -52,13 +64,16 @@ df = df.drop(colunas_sensiveis)
 #converter colunas em string
 df = df.cast(pl.Utf8)
 
+#cria coluna da competência no Dataframe
+df = df.with_columns(pl.lit(competencia).alias("competencia"))
+
 #========================================
 # Carga no BigQuery
 #========================================
 
 #configuração da carga
 job_config = bigquery.LoadJobConfig(
-    write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+    write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
     autodetect=False,
     schema=[bigquery.SchemaField(col, "STRING") for col in df.columns]
 )
