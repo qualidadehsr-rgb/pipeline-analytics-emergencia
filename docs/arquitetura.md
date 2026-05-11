@@ -60,10 +60,14 @@ transformados e saem prontos para consumo do BI.
 3. Cloud Run Service executa o script Python correspondente — lê o arquivo do 
    Cloud Storage, aplica tratamentos de LGPD, carrega no BigQuery Raw e registra 
    o log de execução
-4. dbt executa as transformações — Raw → Staged → Marts
-5. Responsável técnico acessa a interface de curadoria para revisar os casos 
+4. Após cada ingestão, o Cloud Run Service verifica se as 3 tabelas Raw já 
+   possuem dados para a mesma competência (YYYY-MM). Somente quando as 3 
+   estiverem carregadas, o Cloud Run Job `dbt-pipeline-job` é acionado 
+   automaticamente via API do Google Cloud
+5. dbt executa as transformações — Raw → Staged → Marts
+6. Responsável técnico acessa a interface de curadoria para revisar os casos 
    suspeitos de conversão e registrar as decisões na tabela `curadoria_conversao`
-6. Power BI consome a camada Marts atualizada
+7. Power BI consome a camada Marts atualizada
 
 ## Governança e Segurança
 

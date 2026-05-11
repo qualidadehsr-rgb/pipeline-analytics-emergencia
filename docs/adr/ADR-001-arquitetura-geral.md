@@ -10,11 +10,11 @@ A diretoria do hospital precisa ter acesso mensal a indicadores de performance d
 | Ingestão | Python + ADC |
 | Armazenamento | BigQuery |
 | Transformação | dbt Core |
-| Agendamento | Manual (1x ao mês) |
+| Agendamento | Automático via Eventarc + verificação de competência |
 | Visualização | Power BI |
 | Documentação | README, ADRs, dbt docs |
 | Rastreabilidade | log de carga |
-| Recarga | TRUNCATE + INSERT |
+| Recarga | WRITE_APPEND com particionamento por competência |
 
 ## Justificativa
 Decidi pelo armazenamento dos dados em BigQuery, pois o custo zero com o limite oferecido atende por muitos anos aos dados que serão guardados. Também por ser um workload analítico, facilita o consumo do dataset final pela ferramenta de BI para análises;
