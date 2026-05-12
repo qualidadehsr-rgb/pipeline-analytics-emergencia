@@ -6,7 +6,7 @@ transformado as(
         {{cast_inteiro('Atendimento')}} as Atendimento,
         {{ cast_time('Hora') }} as Hora,
         Destino,
-        competencia
+        parse_date('%Y-%m', competencia) as competencia
     from source
 )
 select * from transformado
