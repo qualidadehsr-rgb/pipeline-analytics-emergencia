@@ -19,9 +19,19 @@ models:
     staging:
       +materialized: table
       +schema: staged
+      +partition_by:
+        field: competencia
+        data_type: string
     marts:
       +materialized: table
       +schema: marts
+      +partition_by:
+        field: competencia
+        data_type: string
+      +cluster_by:
+        - SERVICO
+        - CONVENIO
+        - COR_CLASSIF
 
 seeds: 
   pipeline_analytics:

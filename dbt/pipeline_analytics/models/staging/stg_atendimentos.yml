@@ -19,3 +19,6 @@ models:
       - name: ESPECIALIDADE
         tests:
           - not_null
+      - name: competencia
+        tests:
+          - not_null

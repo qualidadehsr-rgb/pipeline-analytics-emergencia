@@ -16,7 +16,8 @@ transformado as (
         ORIGEM_ATEND,
         DT_HR_ATENDIMENTO,
         LEITO,
-        UNIDADE
+        UNIDADE,
+        competencia
     from tipado
 )
 select * from transformado

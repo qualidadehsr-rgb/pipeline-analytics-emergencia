@@ -28,3 +28,6 @@ models:
               arguments:
                 values: [0,1]
                 quote: false
+      - name: competencia
+        tests:
+          - not_null

@@ -16,4 +16,7 @@ models:
       - name: ORIGEM_ATEND
         tests:
           - not_null
+      - name: competencia
+        tests:
+          - not_null
 

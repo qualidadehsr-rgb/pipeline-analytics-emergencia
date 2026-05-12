@@ -138,7 +138,8 @@ final as (
        case when ai.ATENDIMENTO is not null then 1 else 0 end as fl_conversao,
        case when r.CD_ATENDIMENTO is not null then 1 else 0 end as fl_retorno_48h,
        case when a.MOTIVO_ALTA = 'EVASAO' then 1 else 0 end as fl_evasao,
-       case when pc.CD_ATENDIMENTO is not null then 1 else 0 end as fl_suspeito_conversao
+       case when pc.CD_ATENDIMENTO is not null then 1 else 0 end as fl_suspeito_conversao,
+       a.competencia
     from atendimentos as a
     left join atendimento_com_internacoes as ai
     on a.CD_ATENDIMENTO = ai.CD_ATENDIMENTO

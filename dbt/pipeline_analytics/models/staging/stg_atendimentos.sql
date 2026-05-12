@@ -63,7 +63,8 @@ transformado as(
         ESPECIALIDADE,
         CID,
         DT_HR_ALTA,
-        MOTIVO_ALTA
+        MOTIVO_ALTA,
+        competencia
     from tipado
 )
 select * from transformado
