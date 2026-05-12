@@ -13,12 +13,13 @@ Staged e Marts - antes de chegarem para consumo no BI.
 
 | Ferramenta | Versão | Papel |
 |---|---|---|
-| Python | 3.13 | Scripts para realizar a ingestão de 3 bases de dados (relatórios) mensais |
+| Python | 3.12 | Scripts para realizar a ingestão de 3 bases de dados (relatórios) mensais |
 | Polars | 1.39.3 | Biblioteca Python para leitura dos arquivos |
-| dbt Core | 1.11.8 | Responsável pelas transformações necessárias para qualidade dos dados e atendimento às regras de negócio |
+| dbt Core | 1.11.9 | Responsável pelas transformações necessárias para qualidade dos dados e atendimento às regras de negócio |
 | BigQuery | Gerenciado pelo GCP | Armazenamento dos dados de acordo com suas camadas |
 | Cloud Storage | Gerenciado pelo GCP | Ponto de entrada dos arquivos mensais — substitui a pasta de rede local |
 | Cloud Run Service | Gerenciado pelo GCP | Recebe eventos do Eventarc e executa o pipeline na nuvem — elimina dependência de máquina local |
+| Cloud Run Job | Gerenciado pelo GCP | Executa dbt run + dbt test automaticamente após ingestão dos 3 arquivos mensais |
 | Eventarc | Gerenciado pelo GCP | Detecta o upload de arquivos no Cloud Storage e dispara automaticamente o Cloud Run Service |
 | GitHub | Cloud | Versionamento de código |
 | Power BI | — | Visualização dos resultados |
@@ -30,6 +31,8 @@ Camada de armazenamento dos dados brutos ingeridos dos relatórios dentro do
 projeto: `pipeline-analytics-emergencia`, dataset: `raw`. Guarda os dados como 
 vem dos relatórios, sendo realizada apenas a conversão dos tipos para `string` 
 em todas as colunas.
+Cada tabela possui a coluna `competencia` (STRING, YYYY-MM) extraída do nome 
+do arquivo, utilizada para controle de carga via WRITE_APPEND.
 
 ### Staged
 Camada de transformação dos dados brutos lendo a camada raw. Localizados dentro 
@@ -37,12 +40,16 @@ do projeto: `pipeline-analytics-emergencia`, dataset: `staged`. Guarda as
 transformações realizadas nos dados em tabelas, os dados entram brutos e saem 
 com tipagem correta, apenas as colunas necessárias para regras de negócio são 
 materializadas em tabelas.
+Todas as tabelas são particionadas por `competencia` (DATE), convertida de 
+STRING para DATE via PARSE_DATE.
 
 ### Marts
 Camada de consumo dos dados em indicadores de resultado assistencial. Localizados 
 dentro do projeto: `pipeline-analytics-emergencia`, dataset: `marts`. Guarda as 
 transformações realizadas nos dados em uma única tabela, os dados entram 
 transformados e saem prontos para consumo do BI.
+A tabela é particionada por `competencia` (DATE) e clusterizada por `SERVICO`, 
+`CONVENIO` e `COR_CLASSIF` para otimizar consultas do Power BI.
 
 ## Fonte dos Dados
 
@@ -95,12 +102,14 @@ execução registrados no BigQuery a cada execução do pipeline.
 
 **Implementado:**
 - Logs de execução nos scripts Python — registram quantidade de linhas 
-  carregadas, duplicatas removidas e erros.
+  carregadas, duplicatas removidas e erros
+- 25 testes de qualidade no dbt — validação de chaves únicas, valores nulos, 
+  valores esperados e teste singular para movimentações
 
 **Planejado:**
 - Alertas automáticos via Cloud Monitoring em caso de falha na execução
-- Testes de qualidade de dados no dbt — validação de chaves únicas, valores 
-  nulos, valores esperados.
+- Notificações ao responsável técnico quando testes dbt falham
+- Notificações ao responsável do processo quando existem casos suspeitos de conversão
 
 ## Escalabilidade
 A arquitetura em camadas permite adicionar novas fontes de dados e indicadores 

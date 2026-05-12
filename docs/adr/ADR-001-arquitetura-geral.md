@@ -15,6 +15,7 @@ A diretoria do hospital precisa ter acesso mensal a indicadores de performance d
 | Documentação | README, ADRs, dbt docs |
 | Rastreabilidade | log de carga |
 | Recarga | WRITE_APPEND com particionamento por competência |
+| Particionamento | competencia (DATE) no Staged/Marts + clusterização na Marts |
 
 ## Justificativa
 Decidi pelo armazenamento dos dados em BigQuery, pois o custo zero com o limite oferecido atende por muitos anos aos dados que serão guardados. Também por ser um workload analítico, facilita o consumo do dataset final pela ferramenta de BI para análises;

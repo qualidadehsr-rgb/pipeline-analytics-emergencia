@@ -22,7 +22,9 @@ Essa solução define responsabilidades e entregas em cada uma das etapas até a
 ```
 pipeline-analytics-emergencia/
 ├── docs/             # Documentação do projeto
-│   └── adr/          # Architecture Decision Records
+│   ├── adr/          # Architecture Decision Records
+│   ├── arquitetura.md # Arquitetura detalhada do pipeline
+│   └── runbook.md    # Procedimentos operacionais de deploy
 ├── ingestion/        # Scripts Python de ingestão
 ├── dbt/              # Projeto dbt - transformações SQL
 └── README.md         # Apresentação do projeto
@@ -34,9 +36,11 @@ pipeline-analytics-emergencia/
 
 ### Execução mensal
 1. Baixar os 3 relatórios do sistema hospitalar (atendimentos, internações, movimentações)
-2. Fazer upload dos arquivos no bucket `pipeline-analytics-emergencia-ingestao` via console do GCP
-3. O pipeline dispara automaticamente — nenhuma ação técnica adicional é necessária
-4. Verificar o Power BI com os resultados atualizados
+2. Renomear os arquivos seguindo o padrão: `atendimentos_YYYY_MM.csv`, `internacoes_YYYY_MM.csv`, `movimentacoes_YYYY_MM.csv`
+3. Remover a coluna de nome do paciente do arquivo de movimentações
+4. Fazer upload dos 3 arquivos no bucket `pipeline-analytics-emergencia-ingestao` via console do GCP
+5. O pipeline dispara automaticamente — nenhuma ação técnica adicional é necessária
+6. Verificar o Power BI com os resultados atualizados
 
 ### Desenvolvimento local
 ```
@@ -69,3 +73,5 @@ git push
 - [ADR-005 — Migração da Ingestão para Cloud Storage + Cloud Run](docs/adr/ADR-005-migracao-ingestao-cloud.md)
 - [ADR-006 — Interface de Curadoria de Suspeitos de Conversão](docs/adr/ADR-006-curadoria-suspeitos-conversao.md)
 - [ADR-007 — Migração de Cloud Run Job para Service com Eventarc](docs/adr/ADR-007-cloud-run-service-eventarc.md)
+- [ADR-008 — Verificação de Competência e Acionamento do dbt](docs/adr/ADR-008-verificacao-competencia-acionamento-dbt.md)
+- [ADR-009 — Particionamento e Clusterização no BigQuery](docs/adr/ADR-009-particionamento-clusterizacao.md)

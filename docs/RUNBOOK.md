@@ -32,3 +32,46 @@ gcloud run services update ingestao-pipeline-emergencia-service --image us-east1
 ```
 
 **Atenção:** esses dois comandos — build e update — devem sempre ser executados em sequência toda vez que houver alteração em qualquer arquivo da pasta `ingestion/`.
+
+---
+
+## Deploy da imagem do dbt
+
+**Quando usar:** sempre que houver alteração em qualquer arquivo dentro da pasta `dbt/`.
+
+**Comando:**
+```bash
+cd dbt
+gcloud builds submit --tag us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/dbt-pipeline:vX
+```
+
+Substituir `vX` pela próxima versão sequencial (consultar a última versão no Artifact Registry).
+
+**Após o build:** atualizar o Cloud Run Job com a nova imagem:
+
+```bash
+gcloud run jobs update dbt-pipeline-job --image us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/dbt-pipeline:vX --region us-east1
+```
+
+---
+
+## Execução manual do dbt Job
+
+**Quando usar:** para testar alterações no dbt sem precisar re-ingerir os dados.
+
+**Comando:**
+```bash
+gcloud run jobs execute dbt-pipeline-job --region us-east1
+```
+
+---
+
+## Regiões
+
+| Recurso | Região |
+|---|---|
+| Cloud Run Service (ingestão) | us-east1 |
+| Cloud Run Job (dbt) | us-east1 |
+| Artifact Registry | us-east1 |
+| BigQuery datasets | southamerica-east1 |
+| Cloud Storage bucket | southamerica-east1 |
