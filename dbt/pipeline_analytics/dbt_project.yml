@@ -21,13 +21,13 @@ models:
       +schema: staged
       +partition_by:
         field: competencia
-        data_type: string
+        data_type: date
     marts:
       +materialized: table
       +schema: marts
       +partition_by:
         field: competenciadbt
-        data_type: string
+        data_type: date
       +cluster_by:
         - SERVICO
         - CONVENIO

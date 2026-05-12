@@ -7,7 +7,7 @@ tipado as (
         * except(CD_PACIENTE, CD_ATENDIMENTO, IDADE, DT_ATENDIMENTO, DT_HR_TOTEM_RECEP,
                  CHAMADA_CLASSIFICACAO, INICIO_CLASSIFICACAO, DT_HR_CLASSIF_RISCO,
                  CHAMADA_CAD_RECEP, DH_CADASTRO_RECEPCAO, FIM_CAD_RECEP, DH_ATEND_MEDICO,
-                 INI_ATD_MEDICO, FIM_ATD_MEDICO, DT_HR_ALTA),
+                 INI_ATD_MEDICO, FIM_ATD_MEDICO, DT_HR_ALTA, competencia),
         {{cast_inteiro('CD_PACIENTE')}} as CD_PACIENTE,
         {{cast_inteiro('CD_ATENDIMENTO')}} as CD_ATENDIMENTO,
         {{cast_inteiro('IDADE')}} as IDADE,
@@ -22,7 +22,8 @@ tipado as (
         {{ cast_datetime('DH_ATEND_MEDICO')}} as DH_ATEND_MEDICO,
         {{ cast_datetime('INI_ATD_MEDICO')}} as INI_ATD_MEDICO,
         {{ cast_datetime('FIM_ATD_MEDICO')}} as FIM_ATD_MEDICO,
-        {{cast_datetime('DT_HR_ALTA')}} as DT_HR_ALTA
+        {{cast_datetime('DT_HR_ALTA')}} as DT_HR_ALTA,
+        parse_date('%Y-%m', competencia) as competencia
     from source
 ),
 transformado as(
