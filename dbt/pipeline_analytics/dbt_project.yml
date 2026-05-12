@@ -26,7 +26,7 @@ models:
       +materialized: table
       +schema: marts
       +partition_by:
-        field: competenciadbt
+        field: competencia
         data_type: date
       +cluster_by:
         - SERVICO
