@@ -66,11 +66,14 @@ A tabela é particionada por `competencia` (DATE) e clusterizada por `SERVICO`,
 2. Eventarc detecta automaticamente cada upload e dispara o Cloud Run Service
 3. Cloud Run Service executa o script Python correspondente — lê o arquivo do 
    Cloud Storage, aplica tratamentos de LGPD, carrega no BigQuery Raw e registra 
-   o log de execução
+   o log de execução. Antes da ingestão, verifica se já existem dados para 
+   aquela competência na tabela correspondente — se existirem, o upload é 
+   ignorado para evitar duplicação
 4. Após cada ingestão, o Cloud Run Service verifica se as 3 tabelas Raw já 
    possuem dados para a mesma competência (YYYY-MM). Somente quando as 3 
-   estiverem carregadas, o Cloud Run Job `dbt-pipeline-job` é acionado 
-   automaticamente via API do Google Cloud
+   estiverem carregadas, um arquivo de lock é criado no Cloud Storage para 
+   garantir que apenas uma instância acione o Cloud Run Job `dbt-pipeline-job` 
+   via API do Google Cloud
 5. dbt executa as transformações — Raw → Staged → Marts
 6. Responsável técnico acessa a interface de curadoria para revisar os casos 
    suspeitos de conversão e registrar as decisões na tabela `curadoria_conversao`
@@ -105,6 +108,10 @@ execução registrados no BigQuery a cada execução do pipeline.
   carregadas, duplicatas removidas e erros
 - 25 testes de qualidade no dbt — validação de chaves únicas, valores nulos, 
   valores esperados e teste singular para movimentações
+- Lock por competência no Cloud Storage — evita acionamento múltiplo do dbt 
+  Job em uploads simultâneos
+- Proteção contra duplicação na Raw — verifica existência de dados antes da 
+  ingestão para evitar re-upload acidental
 
 **Planejado:**
 - Alertas automáticos via Cloud Monitoring em caso de falha na execução
