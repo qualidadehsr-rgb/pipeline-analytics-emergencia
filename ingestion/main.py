@@ -39,7 +39,11 @@ def ingestao():
     if not bucket_nome or not blob_nome:
         logging.error("Evento sem bucket ou name!")
         return "Bad Request", 400
-
+    
+    if blob_nome.startswith("locks/"):
+        logging.info("Evento ignorado! Arquivo Lock.")
+        return "Ok", 200
+    
     # montagem do caminho completo no Cloud Storage
     nome_arquivo = blob_nome.split("/")[-1]
     caminho_local = f"/tmp/{nome_arquivo}"
@@ -63,7 +67,7 @@ def ingestao():
         logging.error(f"Arquivo não reconhecido: {nome_arquivo}")
         return "Arquivo não reconhecido", 400
 
-    def processar(script, caminho_local, nome_arquivo):
+    def processar(script, caminho_local, nome_arquivo, bucket_nome):
         # execução do script de ingestão correspondente
         logging.info(f"Iniciando ingestão: {script} para {nome_arquivo}")
         subprocess.run(["python", script, caminho_local], check=True)
@@ -72,19 +76,11 @@ def ingestao():
         # criando cliente
         projeto = os.environ.get("PROJECT_ID")
         cliente = bigquery.Client(project=projeto)
-        tabela = script.split("_")
-        tabela = tabela[1].replace(".py", "")
 
-        # consultando a competencia
-        query = f"select distinct(competencia) as competencia" \
-        f" from {projeto}.raw.{tabela}"
-
-        #guardando a query
-        resultado = cliente.query(query).result()
-
-        # extrair a competência
-        for i in resultado:
-            competencia = i.competencia
+        #definindo competência a partir do nome do arquivo
+        periodo = nome_arquivo.split("_")
+        competencia = periodo[2].split(".")
+        competencia = "-".join([periodo[1], competencia[0]])
 
         #lista das tabelas para confirmação da competência
         tabelas = ["atendimentos", "internacoes", "movimentacoes"]
@@ -100,6 +96,22 @@ def ingestao():
         #confere se todas as tabelas estão carregadas na competência certa
         if contador == 3:
             
+            #nome do arquivo lock
+            arquivo_lock = f'locks/dbt_run_{competencia}.lock'
+
+            #cliente
+            cliente = storage.Client()
+            bucket = cliente.bucket(bucket_nome)
+            blob = bucket.blob(arquivo_lock)
+
+            #verificando a concorrência das instâncias
+            try:
+                blob.upload_from_string("",if_generation_match=0)
+                logging.info('Lock criado!')
+            except Exception as e:
+                logging.info(f'Lock já existe para competência {competencia} - dbt Job já foi acionado por outra instância! Erro:{e}')
+                return
+
             #busca as credenciais do ambiente
             credentials,_ = google.auth.default()
             
@@ -121,7 +133,7 @@ def ingestao():
         else:
             logging.info(f"Aguardando demais arquivos — {contador}/3 carregados para competência {competencia}")
     
-    thread = threading.Thread(target=processar, args=(script, caminho_local, nome_arquivo))
+    thread = threading.Thread(target=processar, args=(script, caminho_local, nome_arquivo, bucket_nome))
     thread.start()
     return "OK", 200
 
