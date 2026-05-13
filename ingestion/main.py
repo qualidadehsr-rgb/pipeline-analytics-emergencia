@@ -68,11 +68,7 @@ def ingestao():
         return "Arquivo não reconhecido", 400
 
     def processar(script, caminho_local, nome_arquivo, bucket_nome):
-        # execução do script de ingestão correspondente
-        logging.info(f"Iniciando ingestão: {script} para {nome_arquivo}")
-        subprocess.run(["python", script, caminho_local], check=True)
-        logging.info("Ingestão concluída com sucesso!")
-
+        
         # criando cliente
         projeto = os.environ.get("PROJECT_ID")
         cliente = bigquery.Client(project=projeto)
@@ -81,6 +77,26 @@ def ingestao():
         periodo = nome_arquivo.split("_")
         competencia = periodo[2].split(".")
         competencia = "-".join([periodo[1], competencia[0]])
+
+        tabela = script.split("_")
+        tabela = tabela[1].replace(".py", "")
+
+        #verificação de tabelas duplicadas
+        verificacao_duplicata = f"select count(*) as total from {projeto}.raw.{tabela} where competencia = '{competencia}'"
+
+        #executa a query
+        execucao_query = cliente.query(verificacao_duplicata).result()
+
+        #percorrendo o resultado da query
+        for i in execucao_query:
+            if i.total > 0:
+                logging.info(f"Os dados da tabela {tabela} já existem para a competência {competencia}!")
+                return
+
+        # execução do script de ingestão correspondente
+        logging.info(f"Iniciando ingestão: {script} para {nome_arquivo}")
+        subprocess.run(["python", script, caminho_local], check=True)
+        logging.info("Ingestão concluída com sucesso!")
 
         #lista das tabelas para confirmação da competência
         tabelas = ["atendimentos", "internacoes", "movimentacoes"]
