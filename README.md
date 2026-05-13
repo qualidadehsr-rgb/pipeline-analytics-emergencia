@@ -75,3 +75,5 @@ git push
 - [ADR-007 — Migração de Cloud Run Job para Service com Eventarc](docs/adr/ADR-007-cloud-run-service-eventarc.md)
 - [ADR-008 — Verificação de Competência e Acionamento do dbt](docs/adr/ADR-008-verificacao-competencia-acionamento-dbt.md)
 - [ADR-009 — Particionamento e Clusterização no BigQuery](docs/adr/ADR-009-particionamento-clusterizacao.md)
+- [ADR-010 — Lock para Acionamento Único do dbt Job](docs/adr/ADR-010-lock-acionamento-unico-dbt-job.md)
+- [ADR-011 — Proteção contra Duplicação na Raw](docs/adr/ADR-011-protecao-duplicacao-raw.md)
