@@ -45,7 +45,7 @@ Configuração centralizada no `dbt_project.yml`.
 
 | Flag | Descrição |
 |---|---|
-| `fl_conversao` | Atendimento convertido em internação |
+| fl_conversao | Atendimento convertido em internação (automático via JOIN ou confirmado na curadoria) |
 | `fl_suspeito_conversao` | Possível conversão com erro de cadastro de origem |
 | `fl_retorno_48h` | Paciente retornou ao PA em menos de 48h |
 | `fl_evasao` | Paciente evadiu sem alta médica |
