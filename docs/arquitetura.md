@@ -77,7 +77,8 @@ A tabela é particionada por `competencia` (DATE) e clusterizada por `SERVICO`,
 5. dbt executa as transformações — Raw → Staged → Marts
 6. Responsável técnico acessa a interface de curadoria para revisar os casos 
    suspeitos de conversão e registrar as decisões na tabela `curadoria_conversao`
-7. Power BI consome a camada Marts atualizada
+7. Após finalização da curadoria é disparado re-run do dbt para atualização das tabelas
+8. Power BI consome a camada Marts atualizada
 
 ## Governança e Segurança
 
@@ -112,11 +113,10 @@ execução registrados no BigQuery a cada execução do pipeline.
   Job em uploads simultâneos
 - Proteção contra duplicação na Raw — verifica existência de dados antes da 
   ingestão para evitar re-upload acidental
+- Alertas automáticos via Cloud Monitoring em caso de falha na execução
 
 **Planejado:**
-- Alertas automáticos via Cloud Monitoring em caso de falha na execução
 - Notificações ao responsável técnico quando testes dbt falham
-- Notificações ao responsável do processo quando existem casos suspeitos de conversão
 
 ## Escalabilidade
 A arquitetura em camadas permite adicionar novas fontes de dados e indicadores 
