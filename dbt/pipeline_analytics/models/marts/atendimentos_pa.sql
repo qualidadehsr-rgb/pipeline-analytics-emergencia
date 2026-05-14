@@ -135,7 +135,10 @@ final as (
        ai.Destino,
        ai.Unidade,
        ai.Tipo,
-       case when ai.ATENDIMENTO is not null then 1 else 0 end as fl_conversao,
+       case
+        when ai.ATENDIMENTO is not null then 1
+        when cur.decisao = 'confirmado' then 1
+        else 0 end as fl_conversao,
        case when r.CD_ATENDIMENTO is not null then 1 else 0 end as fl_retorno_48h,
        case when a.MOTIVO_ALTA = 'EVASAO' then 1 else 0 end as fl_evasao,
        case when pc.CD_ATENDIMENTO is not null then 1 else 0 end as fl_suspeito_conversao,
@@ -147,6 +150,8 @@ final as (
     on a.CD_ATENDIMENTO = r.CD_ATENDIMENTO
     left join possivel_conversao as pc
     on a.CD_ATENDIMENTO = pc.CD_ATENDIMENTO
+    left join {{ source('curadoria', 'curadoria_conversao') }} as cur
+    on a.CD_ATENDIMENTO = cur.CD_ATENDIMENTO
 )
 
 select * from final

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Curadoria - Pipeline Emergência</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            padding: 30px;
+        }
+        h1 {
+            color: #16213e;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .info { color: #555; margin-bottom: 16px; font-size: 14px; }
+        .mensagem {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        /* Seletor de competência */
+        .seletor { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .seletor label { font-weight: 600; font-size: 14px; }
+        /* Tabela */
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #16213e;
+            color: white;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 13px;
+        }
+        td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+        tr:hover { background: #f8f9fa; }
+        /* Formulários inline */
+        .acao-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .campos-internacao {
+            display: none;
+            flex-basis: 100%;
+            margin-top: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: none;
+        }
+        .campos-internacao input, .campos-internacao select {
+            margin: 4px;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        /* Inputs e selects */
+        select, input[type="text"] {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        /* Botões */
+        .btn {
+            padding: 7px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .btn-salvar { background: #0066cc; color: white; }
+        .btn-salvar:hover { background: #0052a3; }
+        .btn-carregar { background: #6c757d; color: white; }
+        .btn-carregar:hover { background: #565e64; }
+        .btn-finalizar {
+            background: #28a745;
+            color: white;
+            padding: 10px 24px;
+            font-size: 15px;
+            margin-top: 16px;
+        }
+        .btn-finalizar:hover { background: #218838; }
+        .vazio { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Curadoria de Casos Suspeitos</h1>
+
+        {% if mensagem %}
+            <div class="mensagem">{{ mensagem }}</div>
+        {% endif %}
+
+        {% if competencias %}
+            <div class="card seletor">
+                <form action="/" method="GET" style="display:flex; align-items:center; gap:10px;">
+                    <label>Competência:</label>
+                    <select name="competencia">
+                        {% for comp in competencias %}
+                            <option value="{{ comp }}" {% if comp == competencia %}selected{% endif %}>{{ comp }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-carregar">Carregar</button>
+                </form>
+            </div>
+        {% endif %}
+
+        {% if not suspeitos %}
+            <div class="card vazio">
+                <p>Nenhum caso suspeito para revisar.</p>
+            </div>
+        {% else %}
+            <div class="card">
+                <p class="info">Competência: {{ competencia }} | Total: {{ suspeitos|length }} caso(s) pendente(s)</p>
+                <table>
+                    <tr>
+                        <th>Atendimento PA</th>
+                        <th>Paciente</th>
+                        <th>Data</th>
+                        <th>Ação</th>
+                    </tr>
+                    {% for caso in suspeitos %}
+                    <tr>
+                        <td>{{ caso.atend_PA }}</td>
+                        <td>{{ caso.CD_PACIENTE }}</td>
+                        <td>{{ caso.DT_ATENDIMENTO }}</td>
+                        <td>
+                            <form action="/decidir" method="POST" onsubmit="return validarFormulario(this)" class="acao-form">
+                                <input type="hidden" name="cd_atendimento" value="{{ caso.atend_PA }}">
+                                <input type="hidden" name="competencia" value="{{ competencia }}">
+                                
+                                <select name="decisao" id="decisao_{{ caso.atend_PA }}">
+                                    <option value="descartado">Descartar</option>
+                                    <option value="confirmado">Confirmar conversão</option>
+                                </select>
+
+                                <div id="campos_{{ caso.atend_PA }}" class="campos-internacao">
+                                    <input type="text" name="atend_internacao" placeholder="Atend. Internação">
+                                    <input type="text" name="destino" placeholder="Leito destino">
+                                    <input type="text" name="unidade" placeholder="Unidade">
+                                    <select name="tipo">
+                                        <option value="">Tipo...</option>
+                                        <option value="UTI">UTI</option>
+                                        <option value="Unidade de Internação">Unidade de Internação</option>
+                                    </select>
+                                </div>
+
+                                <input type="text" name="decidido_por" placeholder="Seu nome" required>
+                                <button type="submit" class="btn btn-salvar">Salvar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+
+            <form action="/finalizar" method="POST">
+                <button type="submit" class="btn btn-finalizar">Finalizar Curadoria</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <script>
+    document.querySelectorAll('select[name="decisao"]').forEach(function(select) {
+        select.addEventListener('change', function() {
+            var id = this.id.replace('decisao_', '');
+            var campos = document.getElementById('campos_' + id);
+            if (this.value === 'confirmado') {
+                campos.style.display = 'flex';
+            } else {
+                campos.style.display = 'none';
+            }
+        });
+    });
+
+    function validarFormulario(form) {
+        var decisao = form.querySelector('select[name="decisao"]').value;
+        if (decisao === 'confirmado') {
+            var campos = ['atend_internacao', 'destino', 'unidade', 'tipo'];
+            for (var i = 0; i < campos.length; i++) {
+                var valor = form.querySelector('[name="' + campos[i] + '"]').value.trim();
+                if (!valor) {
+                    alert('Preencha todos os campos de internação antes de confirmar!');
+                    return false;
+                }
+            }
+        }
+        var nome = form.querySelector('[name="decidido_por"]').value.trim();
+        if (!nome) {
+            alert('Preencha seu nome!');
+            return false;
+        }
+        return true;
+    }
+    </script>
+</body>
+</html>
