@@ -8,4 +8,8 @@ sources:
       - name: atendimentos
       - name: internacoes
       - name: movimentacoes
-
+  - name: curadoria
+    database: pipeline-analytics-emergencia
+    schema: curadoria
+    tables:
+      - name: curadoria_conversao
