@@ -90,7 +90,10 @@ nome completo, data de nascimento e endereço. Detalhes completos no ADR-002.
 ### Controle de Acesso e Credenciais
 O pipeline é executado no Cloud Run com autenticação via Application Default 
 Credentials (ADC) — sem arquivos de chave locais. Detalhes completos no ADR-003.
-O Power BI terá acesso mínimo apenas a leitura e jobs na camada Mart.
+O Power BI se conecta via service account `powerbi-leitura-marts` com os papéis 
+BigQuery Data Viewer e BigQuery Job User — acesso restrito a leitura e execução 
+de consultas na camada Marts. A conexão é feita via chave JSON da service account.
+Detalhes completos no ADR-014.
 
 ### Curadoria de Dados
 Casos suspeitos de conversão identificados pelo pipeline são revisados 
