@@ -146,7 +146,7 @@ final as (
         when extract(hour from a.DT_HR_TOTEM_RECEP) between 7 and 11 then 'Manhã'
         when extract(hour from a.DT_HR_TOTEM_RECEP) between 12 and 17 then 'Tarde'
         when extract(hour from a.DT_HR_TOTEM_RECEP) between 18 and 23 then 'Noite'
-        else "Madrugada" end as turno,
+        else 'Madrugada' end as turno,
        case
         when a.IDADE is null then null
         when a.IDADE between 0 and 2 then '0 a 2'
@@ -159,7 +159,7 @@ final as (
         when a.IDADE between 30 and 39 then '30 a 39'
         when a.IDADE between 40 and 49 then '40 a 49'
         when a.IDADE between 50 and 59 then '50 a 59'
-        else "60 ou mais" end as faixa_etaria,
+        else '60 ou mais' end as faixa_etaria,
        case
         when ai.ATENDIMENTO is not null then 1
         when cur.decisao = 'confirmado' then 1
