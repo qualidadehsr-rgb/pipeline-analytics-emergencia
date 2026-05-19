@@ -143,22 +143,22 @@ final as (
        ai.Tipo,
        case
         when a.DT_HR_TOTEM_RECEP is null then null
-        when extract(hour from a.DT_HR_TOTEM_RECEP) between 7 and 11 then "Manhã"
-        when extract(hour from a.DT_HR_TOTEM_RECEP) between 12 and 17 then "Tarde"
-        when extract(hour from a.DT_HR_TOTEM_RECEP) between 18 and 23 then "Noite"
+        when extract(hour from a.DT_HR_TOTEM_RECEP) between 7 and 11 then 'Manhã'
+        when extract(hour from a.DT_HR_TOTEM_RECEP) between 12 and 17 then 'Tarde'
+        when extract(hour from a.DT_HR_TOTEM_RECEP) between 18 and 23 then 'Noite'
         else "Madrugada" end as turno,
        case
         when a.IDADE is null then null
-        when a.IDADE between 0 and 2 then "0 a 2"
-        when a.IDADE between 3 and 5 then "3 a 5"
-        when a.IDADE between 6 and 8 then "6 a 8"
-        when a.IDADE between 9 and 11 then "9 a 11"
-        when a.IDADE between 12 and 14 then "12 a 14"
-        when a.IDADE between 15 and 19 then "15 a 19"
-        when a.IDADE between 20 and 29 then "20 a 29"
-        when a.IDADE between 30 and 39 then "30 a 39"
-        when a.IDADE between 40 and 49 then "40 a 49"
-        when a.IDADE between 50 and 59 then "50 a 59"
+        when a.IDADE between 0 and 2 then '0 a 2'
+        when a.IDADE between 3 and 5 then '3 a 5'
+        when a.IDADE between 6 and 8 then '6 a 8'
+        when a.IDADE between 9 and 11 then '9 a 11'
+        when a.IDADE between 12 and 14 then '12 a 14'
+        when a.IDADE between 15 and 19 then '15 a 19'
+        when a.IDADE between 20 and 29 then '20 a 29'
+        when a.IDADE between 30 and 39 then '30 a 39'
+        when a.IDADE between 40 and 49 then '40 a 49'
+        when a.IDADE between 50 and 59 then '50 a 59'
         else "60 ou mais" end as faixa_etaria,
        case
         when ai.ATENDIMENTO is not null then 1

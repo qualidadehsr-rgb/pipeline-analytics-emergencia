@@ -5,10 +5,17 @@ with indicadores as (
         (sum(fl_conversao) / count(*)) * 100.0 as tx_conversao,
         (sum(fl_retorno_48h) / count(*)) * 100.0 as tx_retorno48h,
         (sum(fl_evasao) / count(*)) * 100.0 as tx_evasao,
-        avg(timestamp_diff(INI_ATD_MEDICO, DT_HR_TOTEM_RECEP, minute)) as tempo_inicio_medico,
+        avg(case
+            when INI_ATD_MEDICO > DT_HR_TOTEM_RECEP then
+            timestamp_diff(INI_ATD_MEDICO, DT_HR_TOTEM_RECEP, minute)
+            else null
+            end) as tempo_inicio_medico,
         (sum(case
         when DT_HR_ALTA is null then 0
-        when timestamp_diff(DT_HR_ALTA, DT_HR_TOTEM_RECEP, hour) <= 6 then 1 else 0 end) / count(*)) * 100.0 as tx_alta_na_meta
+        when DT_HR_ALTA < DT_HR_TOTEM_RECEP then null
+        when timestamp_diff(DT_HR_ALTA, DT_HR_TOTEM_RECEP, hour) <= 6 then 1
+        else 0
+        end) / count(case when DT_HR_ALTA < DT_HR_TOTEM_RECEP then null else 1 end)) * 100.0 as tx_alta_na_meta
     from {{ ref('atendimentos_pa') }}
     where SERVICO != 'OUTROS'
     group by SERVICO, competencia
