@@ -75,3 +75,31 @@ gcloud run jobs execute dbt-pipeline-job --region us-east1
 | Artifact Registry | us-east1 |
 | BigQuery datasets | southamerica-east1 |
 | Cloud Storage bucket | southamerica-east1 |
+
+---
+
+## Limpeza de locks
+
+**Quando usar:** para limpar o storage dos arquivos de meses que já foram ingeridos.
+
+**Frequência:** a cada 2 meses.
+
+**Antes de remover:** confirme que a competência já foi processada e não será re-ingerida
+
+**Comandos:**
+
+***Listar locks existentes***
+```bash
+gcloud storage ls gs://pipeline-analytics-emergencia-ingestao/locks/
+```
+
+***Remover locks específicos***
+```bash
+gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/dbt_run_2026-03.lock
+```
+
+***Remover todos os locks***
+```bash
+gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
+```
+---
