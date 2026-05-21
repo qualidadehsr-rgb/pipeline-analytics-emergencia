@@ -8,30 +8,17 @@ Guia de procedimentos operacionais para manutenção do pipeline.
 
 **Quando usar:** sempre que houver alteração em qualquer arquivo dentro da pasta `ingestion/`.
 
-**Comando:**
+1. Build da imagem:
 ```bash
-gcloud builds submit ingestion/ --tag us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/ingestao:latest
+gcloud builds submit ingestion/ --tag us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/ingestao:vX
 ```
 
-**O que esse comando faz:**
-1. Envia a pasta `ingestion/` para o Cloud Build no GCP
-2. Constrói a nova imagem Docker
-3. Publica a imagem no Artifact Registry com a tag `latest`
-
-**Após o deploy:** o Cloud Run Service já passa a usar a nova imagem automaticamente na próxima execução.
-
----
-
-## Atualizar o Cloud Run Service após novo build
-
-**Quando usar:** sempre após executar o comando de build — o Cloud Run não atualiza automaticamente.
-
-**Comando:**
+2. Atualizar o Cloud Run Service com a nova imagem:
 ```bash
-gcloud run services update ingestao-pipeline-emergencia-service --image us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/ingestao:latest --region us-east1
+gcloud run services update ingestao-pipeline-emergencia-service --image us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/ingestao:vX --region us-east1
 ```
 
-**Atenção:** esses dois comandos — build e update — devem sempre ser executados em sequência toda vez que houver alteração em qualquer arquivo da pasta `ingestion/`.
+> **Atenção:** os passos 1 e 2 devem sempre ser executados em sequência. O Cloud Run não atualiza automaticamente após o build.
 
 ---
 
@@ -39,19 +26,26 @@ gcloud run services update ingestao-pipeline-emergencia-service --image us-east1
 
 **Quando usar:** sempre que houver alteração em qualquer arquivo dentro da pasta `dbt/`.
 
-**Comando:**
+1. Limpar pastas temporárias antes do build:
 ```bash
-cd dbt
+Remove-Item -Recurse -Force pipeline_analytics\target -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force pipeline_analytics\dbt_packages -ErrorAction SilentlyContinue
+```
+
+2. Build da imagem (executar de dentro da pasta `dbt/`):
+```bash
 gcloud builds submit --tag us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/dbt-pipeline:vX
 ```
 
-Substituir `vX` pela próxima versão sequencial (consultar a última versão no Artifact Registry).
-
-**Após o build:** atualizar o Cloud Run Job com a nova imagem:
-
+3. Atualizar o Cloud Run Job com a nova imagem:
 ```bash
 gcloud run jobs update dbt-pipeline-job --image us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/dbt-pipeline:vX --region us-east1
 ```
+
+> Substituir `vX` pela próxima versão sequencial. Para consultar a última versão:
+> ```bash
+> gcloud artifacts docker tags list us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/dbt-pipeline
+> ```
 
 ---
 
@@ -59,9 +53,33 @@ gcloud run jobs update dbt-pipeline-job --image us-east1-docker.pkg.dev/pipeline
 
 **Quando usar:** para testar alterações no dbt sem precisar re-ingerir os dados.
 
-**Comando:**
 ```bash
 gcloud run jobs execute dbt-pipeline-job --region us-east1
+```
+
+---
+
+## Limpeza de locks
+
+**Quando usar:** para limpar o storage dos arquivos de meses que já foram ingeridos.
+
+**Frequência:** a cada 2 meses.
+
+**Antes de remover:** confirme que a competência já foi processada e não será re-ingerida.
+
+1. Listar locks existentes:
+```bash
+gcloud storage ls gs://pipeline-analytics-emergencia-ingestao/locks/
+```
+
+2. Remover locks específicos:
+```bash
+gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/dbt_run_2026-03.lock
+```
+
+3. Remover todos os locks:
+```bash
+gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
 ```
 
 ---
@@ -75,31 +93,3 @@ gcloud run jobs execute dbt-pipeline-job --region us-east1
 | Artifact Registry | us-east1 |
 | BigQuery datasets | southamerica-east1 |
 | Cloud Storage bucket | southamerica-east1 |
-
----
-
-## Limpeza de locks
-
-**Quando usar:** para limpar o storage dos arquivos de meses que já foram ingeridos.
-
-**Frequência:** a cada 2 meses.
-
-**Antes de remover:** confirme que a competência já foi processada e não será re-ingerida
-
-**Comandos:**
-
-***Listar locks existentes***
-```bash
-gcloud storage ls gs://pipeline-analytics-emergencia-ingestao/locks/
-```
-
-***Remover locks específicos***
-```bash
-gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/dbt_run_2026-03.lock
-```
-
-***Remover todos os locks***
-```bash
-gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
-```
----
