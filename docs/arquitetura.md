@@ -15,7 +15,8 @@ Staged e Marts - antes de chegarem para consumo no BI.
 |---|---|---|
 | Python | 3.12 | Scripts para realizar a ingestão de 3 bases de dados (relatórios) mensais |
 | Polars | 1.39.3 | Biblioteca Python para leitura dos arquivos |
-| dbt Core | 1.11.9 | Responsável pelas transformações necessárias para qualidade dos dados e atendimento às regras de negócio |
+| dbt Core | 1.11.6 | Responsável pelas transformações necessárias para qualidade dos dados e atendimento às regras de negócio |
+| dbt-bigquery | 1.11.0 | Adaptador do dbt para o BigQuery |
 | BigQuery | Gerenciado pelo GCP | Armazenamento dos dados de acordo com suas camadas |
 | Cloud Storage | Gerenciado pelo GCP | Ponto de entrada dos arquivos mensais — substitui a pasta de rede local |
 | Cloud Run Service | Gerenciado pelo GCP | Recebe eventos do Eventarc e executa o pipeline na nuvem — elimina dependência de máquina local |
@@ -45,11 +46,15 @@ STRING para DATE via PARSE_DATE.
 
 ### Marts
 Camada de consumo dos dados em indicadores de resultado assistencial. Localizados 
-dentro do projeto: `pipeline-analytics-emergencia`, dataset: `marts`. Guarda as 
-transformações realizadas nos dados em uma única tabela, os dados entram 
-transformados e saem prontos para consumo do BI.
-A tabela é particionada por `competencia` (DATE) e clusterizada por `SERVICO`, 
-`CONVENIO` e `COR_CLASSIF` para otimizar consultas do Power BI.
+dentro do projeto: `pipeline-analytics-emergencia`, dataset: `marts`. Os modelos 
+estão organizados em subpastas por domínio:
+- `atendimentos/` — tabela `atendimentos_pa` com dados prontos para consumo do BI, 
+  particionada por `competencia` (DATE) e clusterizada por `SERVICO`, `CONVENIO` 
+  e `COR_CLASSIF`
+- `ranking/` — tabela `ranking_especialidades` com indicador composto de desempenho 
+  por especialidade, particionada por `competencia` (DATE), sem clusterização
+
+Detalhes da decisão de reorganização no ADR-015.
 
 ## Fonte dos Dados
 
@@ -79,6 +84,7 @@ A tabela é particionada por `competencia` (DATE) e clusterizada por `SERVICO`,
    suspeitos de conversão e registrar as decisões na tabela `curadoria_conversao`
 7. Após finalização da curadoria é disparado re-run do dbt para atualização das tabelas
 8. Power BI consome a camada Marts atualizada
+9. Limpeza de locks no Cloud Storage a cada 2 meses — procedimento no RUNBOOK
 
 ## Governança e Segurança
 
@@ -110,21 +116,31 @@ execução registrados no BigQuery a cada execução do pipeline.
 **Implementado:**
 - Logs de execução nos scripts Python — registram quantidade de linhas 
   carregadas, duplicatas removidas e erros
-- 25 testes de qualidade no dbt — validação de chaves únicas, valores nulos, 
+- 41 testes de qualidade no dbt — validação de chaves únicas, valores nulos, 
   valores esperados e teste singular para movimentações
 - Lock por competência no Cloud Storage — evita acionamento múltiplo do dbt 
   Job em uploads simultâneos
 - Proteção contra duplicação na Raw — verifica existência de dados antes da 
   ingestão para evitar re-upload acidental
 - Alertas automáticos via Cloud Monitoring em caso de falha na execução
+- Limpeza manual de locks a cada 2 meses — procedimento documentado no RUNBOOK
 
 **Planejado:**
-- Notificações ao responsável técnico quando testes dbt falham
+- Testes de negócio no dbt (9 testes) — validação de regras como permanência 
+  não negativa, sequência temporal de eventos e exclusividade entre flags. 
+  Detalhes no plano analítico
+- Observabilidade analítica — painel de saúde do pipeline com monitoramento 
+  de volume, detecção de anomalias e alertas de atraso na ingestão. 
+  Detalhes no plano analítico
 
 ## Escalabilidade
 A arquitetura em camadas permite adicionar novas fontes de dados e indicadores 
 sem impactar o fluxo existente. Novos relatórios podem ser incorporados criando 
 novos scripts de ingestão e modelos dbt seguindo os padrões já estabelecidos.
+
+Expansões previstas no plano analítico:
+- Fase 2: exames laboratoriais, exames de imagem e prescrição de medicamentos
+- Fase 3: cirurgias realizadas e dados financeiros
 
 O consumo no Power BI está limitado ao acesso atual — um link compartilhado 
 com a diretoria — sem perspectiva de expansão de usuários no curto prazo.
