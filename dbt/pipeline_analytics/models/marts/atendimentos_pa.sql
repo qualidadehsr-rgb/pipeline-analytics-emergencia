@@ -176,7 +176,7 @@ final as (
     left join possivel_conversao as pc
     on a.CD_ATENDIMENTO = pc.CD_ATENDIMENTO
     left join {{ source('curadoria', 'curadoria_conversao') }} as cur
-    on a.CD_ATENDIMENTO = cur.CD_ATENDIMENTO
+    on a.CD_ATENDIMENTO = cast(cur.CD_ATENDIMENTO as INT64)
 )
 
 select * from final

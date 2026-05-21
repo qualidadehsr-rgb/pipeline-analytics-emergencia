@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN pip install dbt-bigquery==1.11.0
+RUN pip install dbt-bigquery==1.11.0 dbt-core==1.11.6
 
 COPY pipeline_analytics/ ./pipeline_analytics/
 COPY pipeline_analytics/profiles/profiles.yml ./profiles/profiles.yml
