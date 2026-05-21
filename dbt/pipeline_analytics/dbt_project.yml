@@ -33,7 +33,6 @@ models:
           - SERVICO
           - CONVENIO
           - COR_CLASSIF
-      ranking:
 
 seeds: 
   pipeline_analytics:
