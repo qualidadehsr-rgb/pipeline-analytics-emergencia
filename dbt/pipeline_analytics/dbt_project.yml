@@ -26,12 +26,14 @@ models:
       +materialized: table
       +schema: marts
       +partition_by:
-        field: competencia
-        data_type: date
-      +cluster_by:
-        - SERVICO
-        - CONVENIO
-        - COR_CLASSIF
+          field: competencia
+          data_type: date
+      atendimentos:
+        +cluster_by:
+          - SERVICO
+          - CONVENIO
+          - COR_CLASSIF
+      ranking:
 
 seeds: 
   pipeline_analytics:
