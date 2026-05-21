@@ -14,7 +14,10 @@ dbt/
 │   │   ├── stg_internacoes.sql
 │   │   └── stg_movimentacoes.sql
 │   └── marts/            # Modelos de negócio — leem do Staged
-│       └── atendimentos_pa.sql
+│       ├── atendimentos/
+│       │   └── atendimentos_pa.sql
+│       └── ranking/
+│           └── ranking_especialidades.sql
 ├── seeds/                # Dados de referência estáticos
 │   └── dim_leitos.csv    # Cadastro de referência para as movimentações de leitos no hospital
 ├── macros/               # Macros reutilizáveis
@@ -34,21 +37,25 @@ Todas as tabelas staged e marts são particionadas por `competencia` (DATE),
 coluna extraída do nome do arquivo na ingestão (padrão: `tipo_YYYY_MM.csv`) 
 e convertida de STRING para DATE no staged.
 
-A tabela `marts.atendimentos_pa` possui clusterização adicional por:
-- `SERVICO` — agrupamento corrigido de especialidades
-- `CONVENIO` — tipo de convênio do paciente
-- `COR_CLASSIF` — classificação de risco
+A clusterização é configurada por subpasta no `dbt_project.yml`:
+- `marts/atendimentos/` — clusterizada por `SERVICO`, `CONVENIO` e `COR_CLASSIF`
+- `marts/ranking/` — sem clusterização (tabela pequena, ~10 linhas por competência)
+
+Detalhes da decisão no ADR-015.
 
 Configuração centralizada no `dbt_project.yml`.
 
 ## Indicadores Gerados
 
-| Flag | Descrição |
-|---|---|
-| fl_conversao | Atendimento convertido em internação (automático via JOIN ou confirmado na curadoria) |
-| `fl_suspeito_conversao` | Possível conversão com erro de cadastro de origem |
-| `fl_retorno_48h` | Paciente retornou ao PA em menos de 48h |
-| `fl_evasao` | Paciente evadiu sem alta médica |
+| Campo | Modelo | Descrição |
+|---|---|---|
+| `fl_conversao` | atendimentos_pa | Atendimento convertido em internação (automático via JOIN ou confirmado na curadoria) |
+| `fl_suspeito_conversao` | atendimentos_pa | Possível conversão com erro de cadastro de origem |
+| `fl_retorno_48h` | atendimentos_pa | Paciente retornou ao PA em menos de 48h |
+| `fl_evasao` | atendimentos_pa | Paciente evadiu sem alta médica |
+| `turno` | atendimentos_pa | Turno de chegada derivado do horário do totem (Manhã, Tarde, Noite, Madrugada) |
+| `faixa_etaria` | atendimentos_pa | Faixa etária do paciente derivada da idade |
+| `total_pontos` | ranking_especialidades | Indicador composto ponderado de desempenho por especialidade |
 
 ## Comandos
 
@@ -66,12 +73,19 @@ dbt docs generate && dbt docs serve  # Documentação
 
 ## Testes
 
-O projeto conta com 25 testes automatizados:
+O projeto conta com 41 testes automatizados:
 
 - `not_null` e `unique` nos campos-chave de staging e marts
-- `not_null` em `competencia` nas 4 tabelas (staged e marts)
+- `not_null` em `competencia` em todas as tabelas (staged e marts)
 - `accepted_values` nas flags binárias (0 ou 1)
+- `accepted_values` em `turno` e `faixa_etaria`
+- `accepted_values` nas posições do ranking (1 a 6)
+- `dbt_utils.unique_combination_of_columns` no ranking (SERVICO + competencia)
 - Teste singular `movimentacoes_nulos_invalidos` — valida que nenhuma linha com número de atendimento válido possui `Hora` ou `Destino` nulos
+
+**Planejado:** 9 testes de negócio para validação de regras como permanência 
+não negativa, sequência temporal de eventos e exclusividade entre flags. 
+Detalhes no plano analítico.
 
 ## Configuração
 O projeto utiliza macro `generate_schema_name` para roteamento correto 
