@@ -158,12 +158,11 @@ padrões de volume que alimentam o dimensionamento de equipe por turno.
 
 **Requer:** mínimo de 24 meses de dados históricos (carga histórica).
 
-## Indicador de Governança — Casos Suspeitos de Conversão
-Exibido na Visão Geral ou em destaque próprio. Mostra o volume mensal de 
-casos suspeitos que precisaram de curadoria manual por erros de cadastro 
-na origem. Serve como evidência para a diretoria avaliar a necessidade de 
-melhorias no processo de cadastro do sistema MV. Dados de decisão 
-(confirmado/descartado) disponíveis na tabela `curadoria.curadoria_conversao`.
+## Indicador de Governança — Curadoria de Dados
+A interface de curadoria concentra dois tipos de revisão humana antes daliberação dos dados para o BI:
+Suspeitos de conversão — atendimentos com fl_suspeito_conversao = 1 que precisam de validação no sistema MV. Volume mensal serve como evidência para a diretoria avaliar melhorias no cadastro do sistema.
+Inconsistências de qualidade — casos identificados pelos testes de negócio que afetam KPIs (ex: fl_conversao e fl_evasao simultâneos). Seguem para investigação e sinalização para correção na origem.
+Dados de decisão disponíveis em curadoria.curadoria_conversao. Expansão do escopo documentada na ADR-017.
 
 ## Ficha Técnica de Métricas
 
@@ -186,6 +185,10 @@ Testes singulares que validam regras de negócio além dos testes estruturais
 já existentes (not_null, unique, accepted_values). Implementados como 
 arquivos `.sql` na pasta `tests/`. Devem ser criados antes da entrega da 
 Página 1 para garantir confiança nos números.
+
+Inconsistências encontradas pelos testes que afetam KPIs — como fl_conversao
+e fl_evasao simultâneos — seguem para revisão na interface de curadoria antes
+da liberação dos dados para o BI. Detalhes na ADR-017.
 
 | Teste | Regra |
 |---|---|
