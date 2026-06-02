@@ -78,21 +78,6 @@ def ingestao():
         competencia = periodo[2].split(".")
         competencia = "-".join([periodo[1], competencia[0]])
 
-        tabela = script.split("_")
-        tabela = tabela[1].replace(".py", "")
-
-        #verificação de tabelas duplicadas
-        verificacao_duplicata = f"select count(*) as total from {projeto}.raw.{tabela} where competencia = '{competencia}'"
-
-        #executa a query
-        execucao_query = cliente.query(verificacao_duplicata).result()
-
-        #percorrendo o resultado da query
-        for i in execucao_query:
-            if i.total > 0:
-                logging.info(f"Os dados da tabela {tabela} já existem para a competência {competencia}!")
-                return
-
         # execução do script de ingestão correspondente
         logging.info(f"Iniciando ingestão: {script} para {nome_arquivo}")
         subprocess.run(["python", script, caminho_local], check=True)
