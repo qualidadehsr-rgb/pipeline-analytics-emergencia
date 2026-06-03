@@ -27,7 +27,10 @@ pipeline-analytics-emergencia/
 │   ├── plano-analitico.md # Plano analítico do painel de emergência
 │   └── RUNBOOK.md    # Procedimentos operacionais de deploy
 ├── ingestion/        # Scripts Python de ingestão
+├── curadoria/        # Serviço Flask da interface de curadoria
 ├── dbt/              # Projeto dbt - transformações SQL
+├── infra/            # Scripts de infraestrutura
+│   └── bigquery/     # Scripts SQL de criação de tabelas no BigQuery
 └── README.md         # Apresentação do projeto
 ```
 ## Como Rodar
@@ -41,7 +44,9 @@ pipeline-analytics-emergencia/
 3. Remover a coluna de nome do paciente do arquivo de movimentações
 4. Fazer upload dos 3 arquivos no bucket `pipeline-analytics-emergencia-ingestao` via console do GCP
 5. O pipeline dispara automaticamente — nenhuma ação técnica adicional é necessária
-6. Verificar o Power BI com os resultados atualizados
+6. Acessar a interface de curadoria via navegador para revisar casos suspeitos
+   e inconsistências identificadas pelos testes de negócio
+7. Verificar o Power BI com os resultados atualizados
 
 ### Desenvolvimento local
 ```
@@ -83,3 +88,6 @@ git push
 - [ADR-014 — Alertas Técnicos via Cloud Monitoring](docs/adr/ADR-014-alertas-tecnicos-cloud-monitoring.md)
 - [ADR-015 — Reorganização da Marts em Subpastas](docs/adr/ADR-015-reorganizacao-marts-subpastas.md)
 - [ADR-016 — Fixação de Versões no Dockerfile](docs/adr/ADR-016-fixacao-versoes-dockerfile.md)
+- [ADR-017 — Expansão do Escopo da Curadoria para Inconsistências de Qualidade](docs/adr/ADR-017-expansao-escopo-curadoria.md)
+- [ADR-018 — Idempotência na Ingestão via Delete + Insert por Competência](docs/adr/ADR-018-idempotencia-ingestao-delete-insert.md)
+- [ADR-019 — Autenticação da Interface de Curadoria via IAP](docs/adr/ADR-019-autenticacao-interface-curadoria-IAP.md)

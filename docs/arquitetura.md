@@ -56,6 +56,19 @@ estão organizados em subpastas por domínio:
 
 Detalhes da decisão de reorganização no ADR-015.
 
+### Curadoria
+Camada de governança e revisão humana dos dados. Localizada dentro do projeto:
+`pipeline-analytics-emergencia`, dataset: `curadoria`. Contém quatro tabelas:
+- `curadoria_conversao` — decisões de confirmação ou descarte de casos suspeitos
+  de conversão PA → internação
+- `curadoria_inconsistencias` — registro automático de todas as inconsistências
+  detectadas pelos testes de negócio, populada pelo pipeline após cada execução
+  do dbt. Serve como base para monitoramento de tendência e visibilidade à diretoria
+- `curadoria_decisao_logica` — decisões humanas sobre inconsistências de lógica
+  de negócio (ex: flags logicamente excludentes)
+- `curadoria_imputacao_integridade` — correções humanas de valores impossíveis ou
+  ausentes confirmados no sistema fonte (MV)
+
 ## Fonte dos Dados
 
 | Nome da Fonte | Formato | Frequência | Descrição |
@@ -80,8 +93,10 @@ Detalhes da decisão de reorganização no ADR-015.
    garantir que apenas uma instância acione o Cloud Run Job `dbt-pipeline-job` 
    via API do Google Cloud
 5. dbt executa as transformações — Raw → Staged → Marts
-6. Responsável técnico acessa a interface de curadoria para revisar os casos 
-   suspeitos de conversão e registrar as decisões na tabela `curadoria_conversao`
+6. Responsável técnico acessa a interface de curadoria via navegador (autenticada
+   pelo Identity-Aware Proxy — IAP) para revisar casos suspeitos de conversão e
+   inconsistências identificadas pelos testes de negócio. As decisões são registradas
+   nas tabelas do dataset `curadoria` conforme o tipo de inconsistência
 7. Após finalização da curadoria é disparado re-run do dbt para atualização das tabelas
 8. Power BI consome a camada Marts atualizada
 9. Limpeza de locks no Cloud Storage a cada 2 meses — procedimento no RUNBOOK
@@ -102,10 +117,15 @@ de consultas na camada Marts. A conexão é feita via chave JSON da service acco
 Detalhes completos no ADR-014.
 
 ### Curadoria de Dados
-Casos suspeitos de conversão identificados pelo pipeline são revisados 
-mensalmente pelo responsável técnico através de interface dedicada. As decisões 
-de confirmação ou descarte são registradas na tabela `curadoria_conversao` no 
-BigQuery com rastreabilidade por competência. Detalhes completos no ADR-006.
+A interface de curadoria é protegida pelo Identity-Aware Proxy (IAP) do Google
+Cloud — apenas contas corporativas explicitamente autorizadas conseguem acessar,
+sem necessidade de instalação local. Detalhes completos no ADR-019.
+
+Casos suspeitos de conversão e inconsistências identificadas pelos testes de
+negócio são revisados mensalmente pelo responsável técnico. O modelo de dados
+é relacional: uma tabela central (`curadoria_inconsistencias`) registra todas
+as ocorrências automaticamente, e tabelas filhas registram as decisões humanas
+por tipo de inconsistência. Detalhes da curadoria de conversão no ADR-006.
 
 ### Versionamento e Rastreabilidade
 Os códigos são versionados no GitHub e a rastreabilidade através de logs de 
@@ -124,11 +144,10 @@ execução registrados no BigQuery a cada execução do pipeline.
   ingestão para evitar re-upload acidental
 - Alertas automáticos via Cloud Monitoring em caso de falha na execução
 - Limpeza manual de locks a cada 2 meses — procedimento documentado no RUNBOOK
+- 6 testes de negócio no dbt — validação de regras como permanência não negativa,
+  sequência temporal de eventos e exclusividade entre flags
 
 **Planejado:**
-- Testes de negócio no dbt (9 testes) — validação de regras como permanência 
-  não negativa, sequência temporal de eventos e exclusividade entre flags. 
-  Detalhes no plano analítico
 - Observabilidade analítica — painel de saúde do pipeline com monitoramento 
   de volume, detecção de anomalias e alertas de atraso na ingestão. 
   Detalhes no plano analítico

@@ -159,10 +159,30 @@ padrões de volume que alimentam o dimensionamento de equipe por turno.
 **Requer:** mínimo de 24 meses de dados históricos (carga histórica).
 
 ## Indicador de Governança — Curadoria de Dados
-A interface de curadoria concentra dois tipos de revisão humana antes daliberação dos dados para o BI:
-Suspeitos de conversão — atendimentos com fl_suspeito_conversao = 1 que precisam de validação no sistema MV. Volume mensal serve como evidência para a diretoria avaliar melhorias no cadastro do sistema.
-Inconsistências de qualidade — casos identificados pelos testes de negócio que afetam KPIs (ex: fl_conversao e fl_evasao simultâneos). Seguem para investigação e sinalização para correção na origem.
-Dados de decisão disponíveis em curadoria.curadoria_conversao. Expansão do escopo documentada na ADR-017.
+
+A interface de curadoria é protegida pelo Identity-Aware Proxy (IAP) e concentra
+dois tipos de revisão humana antes da liberação dos dados para o BI:
+
+**Suspeitos de conversão** — atendimentos com `fl_suspeito_conversao = 1` que
+precisam de validação no sistema MV. Volume mensal serve como evidência para a
+diretoria avaliar melhorias no cadastro do sistema.
+
+**Inconsistências de qualidade** — casos identificados pelos testes de negócio,
+organizados em três categorias:
+- Sequência temporal — eventos registrados fora da ordem cronológica esperada.
+  Registrados automaticamente para monitoramento de tendência, sem necessidade
+  de decisão humana
+- Lógica de negócio — flags logicamente excludentes marcadas simultaneamente.
+  Revisão humana decide qual flag prevalece
+- Integridade — valores impossíveis ou ausentes. Revisão humana confere no
+  sistema MV e pode imputar o valor correto
+
+O modelo de dados é relacional: `curadoria_inconsistencias` (tabela central,
+populada automaticamente pelo pipeline) relacionada com `curadoria_decisao_logica`
+e `curadoria_imputacao_integridade` (tabelas filhas, populadas pela interface).
+Uma view consolidada na camada marts alimentará a página de inconsistências no BI.
+
+Detalhes no ADR-006, ADR-017 e ADR-019.
 
 ## Ficha Técnica de Métricas
 
@@ -223,8 +243,8 @@ Entregar as 7 páginas com os dados já disponíveis no pipeline. Requer:
 - ~~Trazer timestamps completos da jornada do raw pra marts~~ ✅
 - ~~Criar campos calculados: turno, faixa etária~~ ✅ (flag de desistência adiada pra após carga histórica)
 - ~~Criar modelo do ranking de especialidades no dbt~~ ✅
-- Criar ficha técnica de métricas
-- Criar testes de negócio no dbt (9 testes)
+- ~~Criar ficha técnica de métricas~~ ✅
+- ~~Criar testes de negócio no dbt (6 testes implementados)~~ ✅
 - Construir Página 1 no Power BI
 - Carga histórica de ~24 meses
 - Validar Página 1 com dados históricos

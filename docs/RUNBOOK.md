@@ -59,6 +59,40 @@ gcloud run jobs execute dbt-pipeline-job --region us-east1
 
 ---
 
+## Deploy da imagem de curadoria
+
+**Quando usar:** sempre que houver alteração em qualquer arquivo dentro da pasta `curadoria/`.
+
+1. Build da imagem:
+```bash
+gcloud builds submit curadoria/ --tag us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/curadoria:vX
+```
+
+2. Atualizar o Cloud Run Service com a nova imagem:
+```bash
+gcloud run services update curadoria-pipeline-emergencia-service --image us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/curadoria:vX --region us-east1
+```
+
+> **Atenção:** os passos 1 e 2 devem sempre ser executados em sequência.
+
+---
+
+## Acesso à interface de curadoria
+
+**URL:** `https://curadoria-pipeline-emergencia-service-533925368095.us-east1.run.app`
+
+**Quando usar:** após cada execução do pipeline, para revisão dos casos suspeitos e inconsistências identificadas pelos testes de negócio.
+
+**Como acessar:**
+1. Abrir o navegador (Chrome ou Edge)
+2. Acessar a URL acima
+3. Fazer login com a conta corporativa `qualidade.hsr@gruposanta.com.br`
+4. A interface carrega automaticamente os casos pendentes da competência mais recente
+
+> **Atenção:** o acesso é controlado pelo Identity-Aware Proxy (IAP). Apenas contas explicitamente autorizadas conseguem acessar. Para adicionar novos usuários, acesse o console do GCP → Security → Identity-Aware Proxy → curadoria-pipeline-emergencia-service → Adicionar principal com o papel `IAP-secured Web App User`.
+
+---
+
 ## Limpeza de locks
 
 **Quando usar:** para limpar o storage dos arquivos de meses que já foram ingeridos.
@@ -93,3 +127,4 @@ gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
 | Artifact Registry | us-east1 |
 | BigQuery datasets | southamerica-east1 |
 | Cloud Storage bucket | southamerica-east1 |
+| Cloud Run Service (curadoria) | us-east1 |
