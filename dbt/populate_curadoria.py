@@ -106,7 +106,7 @@ def main():
         except ValueError:
             eh_hex = False
         
-        if len(partes[-1]) == 8 and eh_hex:
+        if eh_hex:
             teste_nome = partes[-2]
         else:
             teste_nome = partes[-1]
