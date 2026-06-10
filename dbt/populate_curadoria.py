@@ -95,9 +95,22 @@ def main():
         # pega o valor do campo unique_id do dicionário de teste e guarda na variável
         unique_id = teste["unique_id"]
 
-        # extrai o nome do teste, divide a string nos pontos para formar uma lista capturando o último elemento da lista
-        teste_nome = unique_id.split(".")[-1]
         
+        # separa o nome do teste, divide a string nos pontos para formar uma lista
+        partes = unique_id.split(".")
+
+        # verifica se é hexadecimal
+        try:
+            int(partes[-1], 16)
+            eh_hex = True
+        except ValueError:
+            eh_hex = False
+        
+        if len(partes[-1]) == 8 and eh_hex:
+            teste_nome = partes[-2]
+        else:
+            teste_nome = partes[-1]
+
         # busca o tipo da inconsistência no dicionário pré-definido
         tipo = TIPO_POR_TESTE.get(teste_nome, "nao_mapeado")
 
