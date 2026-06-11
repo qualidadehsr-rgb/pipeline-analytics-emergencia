@@ -52,7 +52,7 @@ def montar_registro(cliente, teste_nome, tipo, atendimento, detectado_em):
         "id_inconsistencia": str(uuid.uuid4()),
         "tipo": tipo,
         "teste": teste_nome,
-        "nr_atendimento": atendimento.get("atend_PA") or atendimento.get("Atendimento"),
+        "nr_atendimento": atendimento.get("atend_PA") or atendimento.get("Atendimento") or atendimento.get("unique_field"),
         "competencia": str(atendimento["competencia"]),
         "servico": atendimento.get("SERVICO") or atendimento.get("servico") or "NAO_IDENTIFICADO",
         "detectado_em": detectado_em.isoformat(),
