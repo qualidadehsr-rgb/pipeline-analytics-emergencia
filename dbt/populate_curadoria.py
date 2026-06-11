@@ -43,7 +43,7 @@ def montar_registro(cliente, teste_nome, tipo, atendimento, detectado_em):
     if "competencia" not in atendimento:
         query = f"""
             select competencia from `pipeline-analytics-emergencia.marts.atendimentos_pa`
-            where atend_PA = {atendimento["atend_PA"]}
+            where atend_PA = {atendimento["unique_field"]}
         """
         resultado = cliente.query(query).result()
         atendimento["competencia"] = next(resultado)["competencia"]
