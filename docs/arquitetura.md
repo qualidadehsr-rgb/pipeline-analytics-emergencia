@@ -92,7 +92,10 @@ Camada de governança e revisão humana dos dados. Localizada dentro do projeto:
    estiverem carregadas, um arquivo de lock é criado no Cloud Storage para 
    garantir que apenas uma instância acione o Cloud Run Job `dbt-pipeline-job` 
    via API do Google Cloud
-5. dbt executa as transformações — Raw → Staged → Marts
+5. dbt executa as transformações — Raw → Staged → Marts — e em seguida executa
+   os testes de qualidade. Após os testes, o script `populate_curadoria.py` é
+   executado automaticamente e registra todas as inconsistências detectadas na
+   tabela `curadoria.curadoria_inconsistencias`
 6. Responsável técnico acessa a interface de curadoria via navegador (autenticada
    pelo Identity-Aware Proxy — IAP) para revisar casos suspeitos de conversão e
    inconsistências identificadas pelos testes de negócio. As decisões são registradas
@@ -136,8 +139,8 @@ execução registrados no BigQuery a cada execução do pipeline.
 **Implementado:**
 - Logs de execução nos scripts Python — registram quantidade de linhas 
   carregadas, duplicatas removidas e erros
-- 41 testes de qualidade no dbt — validação de chaves únicas, valores nulos, 
-  valores esperados e teste singular para movimentações
+- 47 testes de qualidade no dbt — validação de chaves únicas, valores nulos,
+  valores esperados e testes singulares de negócio
 - Lock por competência no Cloud Storage — evita acionamento múltiplo do dbt 
   Job em uploads simultâneos
 - Proteção contra duplicação na Raw — verifica existência de dados antes da 
