@@ -38,7 +38,16 @@ def buscar_atendimentos(cliente, compiled_code):
     return atendimentos
 
 # estruturar o registro para persistência no BigQuery
-def montar_registro(teste_nome, tipo, atendimento, detectado_em):
+def montar_registro(cliente, teste_nome, tipo, atendimento, detectado_em):
+    # verificar se a coluna de competência esta em atendimento
+    if "competencia" not in atendimento:
+        query = f"""
+            select competencia from `pipeline-analytics-emergencia.marts.atendimentos_pa`
+            where atend_PA = {atendimento["atend_PA"]}
+        """
+        resultado = cliente.query(query).result()
+        atendimento["competencia"] = next(resultado)["competencia"]
+
     return{
         "id_inconsistencia": str(uuid.uuid4()),
         "tipo": tipo,
@@ -125,7 +134,7 @@ def main():
         # percorre os atendimentos com falhas para registrar na curadoria_inconsistencia
         for atendimento in atendimentos:
             # monta a estrutura dos registros das falhas e guarda na variável
-            registro = montar_registro(teste_nome, tipo, atendimento, detectado_em)
+            registro = montar_registro(cliente, teste_nome, tipo, atendimento, detectado_em)
             registros.append(registro)
     
     # verifica se a lista tem algum registro antes de inserir no BigQuery
