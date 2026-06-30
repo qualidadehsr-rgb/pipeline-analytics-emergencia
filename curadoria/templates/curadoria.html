@@ -126,27 +126,32 @@
                 <p class="info">Competência: {{ competencia }} | Total: {{ suspeitos|length }} caso(s) pendente(s)</p>
                 <table>
                     <tr>
-                        <th>Atendimento PA</th>
-                        <th>Paciente</th>
-                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Atendimento</th>
+                        <th>Detectado em</th>
+                        <th>Serviço</th>
                         <th>Ação</th>
                     </tr>
                     {% for caso in suspeitos %}
                     <tr>
-                        <td>{{ caso.atend_PA }}</td>
-                        <td>{{ caso.CD_PACIENTE }}</td>
-                        <td>{{ caso.DT_ATENDIMENTO }}</td>
+                        <td>{{ caso.tipo }}</td>
+                        <td>{{ caso.nr_atendimento }}</td>
+                        <td>{{ caso.detectado_em }}</td>
+                        <td>{{ caso.servico }}</td>
                         <td>
                             <form action="/decidir" method="POST" onsubmit="return validarFormulario(this)" class="acao-form">
-                                <input type="hidden" name="cd_atendimento" value="{{ caso.atend_PA }}">
+                                <input type="hidden" name="tipo_inconsistencia" value="{{ caso.tipo }}">
                                 <input type="hidden" name="competencia" value="{{ competencia }}">
+                                <input type="hidden" name="id_inconsistencia" value="{{ caso.id_inconsistencia }}">
+                                <input type="hidden" name="cd_atendimento" value="{{ caso.nr_atendimento }}">
                                 
-                                <select name="decisao" id="decisao_{{ caso.atend_PA }}">
+                                {% if caso.tipo == "conversao" %}
+                                <select name="decisao" id="decisao_{{ caso.nr_atendimento }}">
                                     <option value="descartado">Descartar</option>
                                     <option value="confirmado">Confirmar conversão</option>
                                 </select>
 
-                                <div id="campos_{{ caso.atend_PA }}" class="campos-internacao">
+                                <div id="campos_{{ caso.nr_atendimento }}" class="campos-internacao">
                                     <input type="text" name="atend_internacao" placeholder="Atend. Internação">
                                     <input type="text" name="destino" placeholder="Leito destino">
                                     <input type="text" name="unidade" placeholder="Unidade">
@@ -156,6 +161,17 @@
                                         <option value="Unidade de Internação">Unidade de Internação</option>
                                     </select>
                                 </div>
+                                {% elif caso.tipo == "logica_negocio" %}
+                                <select name="flag_prevalece">
+                                    <option value="conversao">Conversão</option>
+                                    <option value="evasao">Evasão</option>
+                                </select>
+                                <input type="text" name="justificativa" placeholder="Justificativa (opcional)">
+                                {% elif caso.tipo == "sequencia_temporal" or caso.tipo == "integridade" %}
+                                <input type="text" name="campo_afetado" placeholder="Campo afetado">
+                                <input type="text" name="valor_original" placeholder="Valor original">
+                                <input type="text" name="valor_imputado" placeholder="Valor corrigido (deixe vazio se não houver correção)">
+                                {% endif %}
 
                                 <input type="text" name="decidido_por" placeholder="Seu nome" required>
                                 <button type="submit" class="btn btn-salvar">Salvar</button>
@@ -186,14 +202,17 @@
     });
 
     function validarFormulario(form) {
-        var decisao = form.querySelector('select[name="decisao"]').value;
-        if (decisao === 'confirmado') {
-            var campos = ['atend_internacao', 'destino', 'unidade', 'tipo'];
-            for (var i = 0; i < campos.length; i++) {
-                var valor = form.querySelector('[name="' + campos[i] + '"]').value.trim();
-                if (!valor) {
-                    alert('Preencha todos os campos de internação antes de confirmar!');
-                    return false;
+        var SelectDecisao = form.querySelector('select[name="decisao"]');
+        if (SelectDecisao) {
+            var decisao = SelectDecisao.value;
+            if (decisao === 'confirmado') {
+                var campos = ['atend_internacao', 'destino', 'unidade', 'tipo'];
+                for (var i = 0; i < campos.length; i++) {
+                    var valor = form.querySelector('[name="' + campos[i] + '"]').value.trim();
+                    if (!valor) {
+                        alert('Preencha todos os campos de internação antes de confirmar!');
+                        return false;
+                    }
                 }
             }
         }
