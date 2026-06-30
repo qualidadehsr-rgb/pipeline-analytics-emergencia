@@ -1,7 +1,7 @@
 # Plano Analítico — Emergência
 
 **Data:** 2026-05-21  
-**Última atualização:** 2026-05-21  
+**Última atualização:** 2026-06-30  
 **Status:** Em construção
 
 ## Objetivo
@@ -170,8 +170,8 @@ diretoria avaliar melhorias no cadastro do sistema.
 **Inconsistências de qualidade** — casos identificados pelos testes de negócio,
 organizados em três categorias:
 - Sequência temporal — eventos registrados fora da ordem cronológica esperada.
-  Registrados automaticamente para monitoramento de tendência, sem necessidade
-  de decisão humana
+  Revisão humana confere no sistema MV e pode imputar o valor correto, ou
+  confirmar que o erro está na origem (sem correção disponível)
 - Lógica de negócio — flags logicamente excludentes marcadas simultaneamente.
   Revisão humana decide qual flag prevalece
 - Integridade — valores impossíveis ou ausentes. Revisão humana confere no
@@ -245,6 +245,10 @@ Entregar as 7 páginas com os dados já disponíveis no pipeline. Requer:
 - ~~Criar modelo do ranking de especialidades no dbt~~ ✅
 - ~~Criar ficha técnica de métricas~~ ✅
 - ~~Criar testes de negócio no dbt (6 testes implementados)~~ ✅
+- ~~Expandir interface de curadoria para cobrir todos os tipos de inconsistência (conversão, lógica de negócio, sequência temporal,integridade)~~ ✅
+- Adicionar JOIN das tabelas `curadoria_decisao_logica` e
+  `curadoria_imputacao_integridade` nos modelos dbt, para que as decisões
+  da curadoria reflitam na `marts.atendimentos_pa`
 - Construir Página 1 no Power BI
 - Carga histórica de ~24 meses
 - Validar Página 1 com dados históricos

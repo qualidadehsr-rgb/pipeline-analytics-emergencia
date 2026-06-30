@@ -115,6 +115,17 @@ gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/dbt_run_2026
 ```bash
 gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
 ```
+---
+
+---
+
+## Problemas conhecidos
+
+| Sintoma | Causa | Solução aplicada | O que fazer se acontecer de novo |
+|---|---|---|---|
+| Após revisar um caso na curadoria, o total de casos pendentes na tela não diminui | Cache de resultado de consulta do BigQuery — o `cliente.query()` retorna dados salvos de uma execução anterior em vez de buscar o estado atual | Adicionado `bigquery.QueryJobConfig(use_query_cache=False)` nas duas queries de `listar_suspeitos()` em `curadoria/main.py` | Verificar se o `job_config` com `use_query_cache=False` está presente nas queries da função afetada |
+| Um caso específico continua aparecendo na lista mesmo após ser decidido (pode passar despercebido, já que o restante da lista parece normal) | Mesma causa acima — cache de query | Mesma solução acima | Confirmar no BigQuery, via `SELECT status FROM curadoria_inconsistencias WHERE id_inconsistencia = '...'`, se o status realmente está `revisado`; se sim, o problema é de cache, não de dado |
+
 
 ---
 

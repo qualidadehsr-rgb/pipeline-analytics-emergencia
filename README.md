@@ -91,3 +91,4 @@ git push
 - [ADR-017 — Expansão do Escopo da Curadoria para Inconsistências de Qualidade](docs/adr/ADR-017-expansao-escopo-curadoria.md)
 - [ADR-018 — Idempotência na Ingestão via Delete + Insert por Competência](docs/adr/ADR-018-idempotencia-ingestao-delete-insert.md)
 - [ADR-019 — Autenticação da Interface de Curadoria via IAP](docs/adr/ADR-019-autenticacao-interface-curadoria-IAP.md)
+- [ADR-020 — Auto-população da Curadoria de Inconsistências](docs/adr/ADR-020-auto-populacao-curadoria-inconsistencias.md)
