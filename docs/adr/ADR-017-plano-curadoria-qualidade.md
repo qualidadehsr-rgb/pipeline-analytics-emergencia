@@ -2,7 +2,7 @@
 
 **Data:** 2026-05-29
 
-**Status:** Decisão tomada — implementação pendente
+**Status:** Implementado (2026-06-30)
 
 ## Contexto
 
@@ -26,10 +26,11 @@ inconsistências de qualidade identificadas pelos testes de negócio.
 
 Expandir o escopo da interface de curadoria para acomodar dois tipos de revisão:
 
-| Tipo | Origem | Ação esperada |
-|---|---|---|
-| Suspeitos de conversão | `fl_suspeito_conversao = 1` no modelo dbt | Confirmar ou descartar a conversão |
-| Inconsistências de qualidade | Falha em testes de negócio que afetam KPIs | Investigar, registrar e sinalizar para correção no sistema |
+| Tipo | Origem | Ação esperada | Tabela de decisão |
+|---|---|---|---|
+| Suspeitos de conversão | `fl_suspeito_conversao = 1` no modelo dbt | Confirmar ou descartar a conversão | `curadoria_conversao` |
+| Lógica de negócio | Falha em teste de negócio com flags logicamente excludentes (ex: `fl_conversao` e `fl_evasao` simultâneos) | Decidir qual flag prevalece, com justificativa opcional | `curadoria_decisao_logica` |
+| Sequência temporal / Integridade | Falha em teste de negócio por evento fora de ordem ou valor impossível/ausente | Confirmar erro sem correção, ou imputar o valor correto encontrado no sistema fonte (MV) | `curadoria_imputacao_integridade` |
 
 Os casos de inconsistência de qualidade devem ser apresentados na interface
 de curadoria com identificação do teste que falhou, o registro afetado e
@@ -65,7 +66,17 @@ o tipo de violação encontrada.
 
 ## Posição no Roadmap
 
-Esta implementação será realizada após a construção da Página 1 no Power BI
-e da carga histórica, como parte da evolução da interface de curadoria.
-Uma página dedicada a inconsistências no painel também será avaliada nesse
-momento.
+A implementação foi antecipada em relação ao plano original: a construção
+da Página 1 no Power BI estava em andamento quando ficou evidente que KPIs
+calculados sem essa camada de revisão estariam incorretos (caso do
+atendimento `1621248`). A construção da Página 1 foi pausada para priorizar
+esta expansão, retomando apenas após a conclusão.
+
+**Pendência remanescente:** o JOIN das tabelas `curadoria_decisao_logica` e
+`curadoria_imputacao_integridade` nos modelos dbt ainda não existe — as
+decisões ficam registradas no BigQuery, mas ainda não refletem na
+`marts.atendimentos_pa`. Detalhes no `plano-analitico.md`, Fase 1.
+
+A página dedicada a inconsistências no painel (mencionada na versão anterior
+desta ADR) está registrada no plano analítico como item de escopo futuro,
+fora do roadmap imediato.
