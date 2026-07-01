@@ -22,6 +22,9 @@ models:
       +partition_by:
         field: competencia
         data_type: date
+    intermediate:
+      +materialized: view
+      +schema: intermediate
     marts:
       +materialized: table
       +schema: marts

@@ -1,5 +1,34 @@
 with atendimentos as (
-    select * from {{ref('stg_atendimentos')}}
+    select
+        ar.* except(
+            CD_PACIENTE, IDADE, SEXO, CEP, CIDADE, UF, CONVENIO, SERVICO,
+            COR_CLASSIF, PRESTADOR, ESPECIALIDADE, CID, MOTIVO_ALTA,
+            DT_ATENDIMENTO, DT_HR_TOTEM_RECEP, DT_HR_CLASSIF_RISCO,
+            INI_ATD_MEDICO, FIM_ATD_MEDICO, DT_HR_ALTA
+        ),
+        coalesce(safe_cast(cc.CD_PACIENTE_corrigido as INT64), ar.CD_PACIENTE) as CD_PACIENTE,
+        coalesce(safe_cast(cc.IDADE_corrigido as INT64), ar.IDADE) as IDADE,
+        coalesce(cc.SEXO_corrigido, ar.SEXO) as SEXO,
+        coalesce(cc.CEP_corrigido, ar.CEP) as CEP,
+        coalesce(cc.CIDADE_corrigido, ar.CIDADE) as CIDADE,
+        coalesce(cc.UF_corrigido, ar.UF) as UF,
+        coalesce(cc.CONVENIO_corrigido, ar.CONVENIO) as CONVENIO,
+        coalesce(cc.SERVICO_corrigido, ar.SERVICO) as SERVICO,
+        coalesce(cc.COR_CLASSIF_corrigido, ar.COR_CLASSIF) as COR_CLASSIF,
+        coalesce(cc.PRESTADOR_corrigido, ar.PRESTADOR) as PRESTADOR,
+        coalesce(cc.ESPECIALIDADE_corrigido, ar.ESPECIALIDADE) as ESPECIALIDADE,
+        coalesce(cc.CID_corrigido, ar.CID) as CID,
+        coalesce(cc.MOTIVO_ALTA_corrigido, ar.MOTIVO_ALTA) as MOTIVO_ALTA,
+        coalesce(safe_cast(cc.DT_ATENDIMENTO_corrigido as DATE), ar.DT_ATENDIMENTO) as DT_ATENDIMENTO,
+        coalesce(safe.parse_datetime('%d/%m/%Y %H:%M:%S', cc.DT_HR_TOTEM_RECEP_corrigido), ar.DT_HR_TOTEM_RECEP) as DT_HR_TOTEM_RECEP,
+        coalesce(safe.parse_datetime('%d/%m/%Y %H:%M:%S', cc.DT_HR_CLASSIF_RISCO_corrigido), ar.DT_HR_CLASSIF_RISCO) as DT_HR_CLASSIF_RISCO,
+        coalesce(safe.parse_datetime('%d/%m/%Y %H:%M:%S', cc.INI_ATD_MEDICO_corrigido), ar.INI_ATD_MEDICO) as INI_ATD_MEDICO,
+        coalesce(safe.parse_datetime('%d/%m/%Y %H:%M:%S', cc.FIM_ATD_MEDICO_corrigido), ar.FIM_ATD_MEDICO) as FIM_ATD_MEDICO,
+        coalesce(safe.parse_datetime('%d/%m/%Y %H:%M:%S', cc.DT_HR_ALTA_corrigido), ar.DT_HR_ALTA) as DT_HR_ALTA,
+        cc.flag_prevalece
+    from {{ref('stg_atendimentos')}} as ar
+    left join {{ ref('int_curadoria_correcoes') }} as cc
+    on ar.CD_ATENDIMENTO = cc.nr_atendimento
 ),
 
 internacoes as (
@@ -161,12 +190,24 @@ final as (
         when a.IDADE between 50 and 59 then '50 a 59'
         else '60 ou mais' end as faixa_etaria,
        case
+        when a.flag_prevalece = 'conversao' then 1
+        when a.flag_prevalece = 'evasao' then 0
         when ai.ATENDIMENTO is not null then 1
         when cur.decisao = 'confirmado' then 1
         else 0 end as fl_conversao,
        case when r.CD_ATENDIMENTO is not null then 1 else 0 end as fl_retorno_48h,
-       case when a.MOTIVO_ALTA = 'EVASAO' then 1 else 0 end as fl_evasao,
+       case
+        when a.flag_prevalece = 'evasao' then 1
+        when a.flag_prevalece = 'conversao' then 0
+        when a.MOTIVO_ALTA = 'EVASAO' then 1 else 0 end as fl_evasao,
        case when pc.CD_ATENDIMENTO is not null then 1 else 0 end as fl_suspeito_conversao,
+       case
+        when a.DT_HR_ALTA is null then 0
+        when datetime_diff(a.DT_HR_ALTA, a.DT_HR_TOTEM_RECEP, minute) <= 360 then 1
+        else 0 end as fl_alta_na_meta,
+       case
+        when a.INI_ATD_MEDICO is null then null
+        else datetime_diff(a.INI_ATD_MEDICO, a.DT_HR_TOTEM_RECEP, minute) end as minutos_espera_medica,
        a.competencia
     from atendimentos as a
     left join atendimento_com_internacoes as ai

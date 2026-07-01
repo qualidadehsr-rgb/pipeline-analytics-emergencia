@@ -13,3 +13,6 @@ sources:
     schema: curadoria
     tables:
       - name: curadoria_conversao
+      - name: curadoria_inconsistencias
+      - name: curadoria_decisao_logica
+      - name: curadoria_imputacao_integridade
