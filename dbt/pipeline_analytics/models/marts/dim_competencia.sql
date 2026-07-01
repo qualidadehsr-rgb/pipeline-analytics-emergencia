@@ -24,5 +24,11 @@ final as(
             when extract(month from competencia) = 12 then 'Dez' end as nome_mes,
         extract(quarter from competencia) as trimestre
     from competencias
+),
+
+with_label as(
+    select *,
+            concat(nome_mes, '/', cast(ano as string)) as competencia_label
+    from final
 )
-select * from final
+select * from with_label
