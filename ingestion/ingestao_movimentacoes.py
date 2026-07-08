@@ -124,6 +124,9 @@ df = df.reset_index(drop=True)
 #cria coluna da competência no Dataframe
 df["competencia"] = competencia
 
+#transforma os tipos em string
+df = df.astype(str)
+
 #========================================
 # Carga no BigQuery
 #========================================
