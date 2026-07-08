@@ -3,11 +3,19 @@ version: 2
 models:
   - name: stg_movimentacoes
     columns:
-      - name: Atendimento
+      - name: ATENDIMENTO
         tests:
           - not_null
-      - name: Hora
-      - name: Destino
-      - name: competencia
+      - name: HORA
+      - name: TIPO
+      - name: ORIGEM
+      - name: DESTINO
+      - name: TIP_ACOM
+      - name: CID
+      - name: CONVENIO
+      - name: MOTIVO_ALTA
+      - name: UNIDADE
+      - name: DATA
+      - name: COMPETENCIA
         tests:
           - not_null
