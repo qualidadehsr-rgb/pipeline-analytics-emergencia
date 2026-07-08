@@ -4,7 +4,7 @@ with source as (
 transformado as(
     select
         {{cast_inteiro('ATEND')}} as ATENDIMENTO,
-        {{ cast_time('HORA') }} as HORA,
+        cast(HORA as time) as HORA,
         TIPO,
         ORIGEM,
         DESTINO,
@@ -13,7 +13,7 @@ transformado as(
         CONVENIO,
         MOTIVO_ALTA,
         UNIDADE,
-        {{ cast_data('DATA') }} as DATA,
+        safe_cast(nullif(DATA, 'NaT') as date) as DATA,
         parse_date('%Y-%m', competencia) as COMPETENCIA
     from source
 )
