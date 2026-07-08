@@ -1,12 +1,9 @@
 import os
 import sys
-import polars as pl
+import re
+import pandas as pd
 import logging
-from dotenv import load_dotenv
 from google.cloud import bigquery
-
-#carregar variáveis de ambiente
-load_dotenv()
 
 #configurar logs
 logging.basicConfig(
@@ -29,41 +26,106 @@ nome_arquivo = os.path.basename(caminho_arquivo)
 periodo = nome_arquivo.split("_")
 
 #limpa o mês
-periodo_mes = periodo[2].replace(".xlsx", "")
+periodo_mes = os.path.splitext(periodo[2])[0]
 
 #unifica o ano ao mês
 competencia = "-".join([periodo[1], periodo_mes])
 
-#leitura do arquivo
-df = pl.read_excel(caminho_arquivo)
-print(f"Colunas encontradas: {df.columns}")
+# leitura do arquivo
+df = pd.read_excel(caminho_arquivo, header=None, sheet_name=0)
 
-#remove colunas sem nome
-df = df[[col for col in df.columns if not col.startswith('__UNNAMED__')]]
+# reproduz a unidade de internação e a data de movimentação para cada linha de dado
+unidade_atual = None
+data_atual = None
 
-#converter coluna de hora para string
-df = df.with_columns(pl.col('Hora').dt.strftime('%H:%M'))
+df['UNIDADE'] = None
+df['DATA'] = None
 
-#renomeando as colunas necessárias
-df = df.rename({
-    'Atend.': 'Atendimento',
-    'Tip. Acom': 'Tip_Acom',
-    'CID ': 'CID',
-    'Convênio': 'Convenio',
-    'Motivo Alta': 'Motivo_Alta'
-})
+# percorre o dataframe linha por linha, retornando dois valores a cada iteração: o número da linha e o conteúdo da linha
+for numero_linha, linha in df.iterrows():
+    # verifica se a string começa com esse texto. Quando sim, usa o valor da coluna 5 onde esta o nome da unidade
+    if str(linha[0]).startswith('Unidade de Internação'):
+           unidade_atual = linha[6]
+    # remove espaços em branco no início e fim da string
+    elif str(linha[0]).strip() == 'Data:':
+          data_atual = linha[2]
+    # acessa uma célula específica do dataframe para escrita
+    df.at[numero_linha, 'UNIDADE'] = unidade_atual
+    df.at[numero_linha, 'DATA'] = data_atual
 
-#removendo "lixo"
-df = df.filter(pl.col('Atendimento').str.contains(r"^\d+$"))
+# filtra apenas as linhas com dados de movimentações (Atend. numérico na coluna 1)
+df = df[pd.to_numeric(df[1], errors='coerce').notna()]
 
-logging.info(f'Carregado {len(df)} linhas!')
-print(df.head(5))
+# função auxiliar para verificar se um valor é horário (HH:MM:SS)
+def eh_horario(valor):
+      if pd.isna(valor):
+            return False
+      return bool(re.match(r'^\d{2}:\d{2}:\d{2}$', str(valor).strip()))
 
-#converter colunas em strings
-df = df.cast(pl.Utf8)
+# normaliza as colunas deslocadas para um layout único
+linhas_normalizadas = []
+
+for numero_linha, linha in df.iterrows():
+    # layout A: hora na coluna 10 (com coluna paciente)
+    if eh_horario(linha[10]):
+        linhas_normalizadas.append({
+            'ATEND': linha[1],
+            'NM_PACIENTE': linha[3],
+            'HORA': linha[10],
+            'TIPO': linha[11],
+            'ORIGEM': linha[13],
+            'DESTINO': linha[15],
+            'TIP_ACOM': linha[16],
+            'CID': linha[17],
+            'CONVENIO': linha[18],
+            'MOTIVO_ALTA': linha[19],
+            'UNIDADE': linha['UNIDADE'],
+            'DATA': linha['DATA'],
+        })
+    # layout B: hora na coluna 7
+    elif eh_horario(linha[7]):
+        linhas_normalizadas.append({
+            'ATEND': linha[1],
+            'NM_PACIENTE': linha[3],
+            'HORA': linha[7],
+            'TIPO': linha[8],
+            'ORIGEM': linha[10],
+            'DESTINO': linha[12],
+            'TIP_ACOM': linha[13],
+            'CID': linha[14],
+            'CONVENIO': linha[15],
+            'MOTIVO_ALTA': linha[16],
+            'UNIDADE': linha['UNIDADE'],
+            'DATA': linha['DATA'],
+        })
+    # layout C: hora na coluna 8
+    elif eh_horario(linha[8]):
+        linhas_normalizadas.append({
+            'ATEND': linha[1],
+            'NM_PACIENTE': linha[3],
+            'HORA': linha[8],
+            'TIPO': linha[9],
+            'ORIGEM': linha[11],
+            'DESTINO': linha[13],
+            'TIP_ACOM': linha[14],
+            'CID': linha[15],
+            'CONVENIO': linha[16],
+            'MOTIVO_ALTA': linha[17],
+            'UNIDADE': linha['UNIDADE'],
+            'DATA': linha['DATA'],
+        })
+
+df = pd.DataFrame(linhas_normalizadas)
+
+# resetando a coluna de índice
+df = df.reset_index(drop=True)
+
 
 #cria coluna da competência no Dataframe
-df = df.with_columns(pl.lit(competencia).alias("competencia"))
+df["competencia"] = competencia
+
+#transforma os tipos em string
+df = df.astype(str)
 
 #========================================
 # Carga no BigQuery
@@ -83,7 +145,7 @@ destino = f'{project_id}.raw.movimentacoes'
 cliente.query(f"delete from {destino} where competencia = '{competencia}'").result()
 
 #execução da carga
-job = cliente.load_table_from_dataframe(df.to_pandas(), destino, job_config=job_config)
+job = cliente.load_table_from_dataframe(df, destino, job_config=job_config)
 logging.info('Enviando dados ao BigQuery...')
 
 #aguardar carga
