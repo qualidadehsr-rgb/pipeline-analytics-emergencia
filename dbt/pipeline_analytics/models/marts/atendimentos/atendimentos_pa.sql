@@ -54,7 +54,9 @@ ultima_movimentacao as(
 ),
 
 movimentacao_enriquecida as(
-    select *
+    select
+        u.* except(UNIDADE),
+        l.Unidade
     from ultima_movimentacao as u
     left join leitos as l
     on u.destino = l.leito
