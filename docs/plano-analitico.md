@@ -239,17 +239,16 @@ Notificação automática quando algo estiver fora do esperado.
 ## Fases de Entrega
 
 ### Fase 1 — Dados atuais
-Entregar as 7 páginas com os dados já disponíveis no pipeline. Requer:
 - ~~Trazer timestamps completos da jornada do raw pra marts~~ ✅
-- ~~Criar campos calculados: turno, faixa etária~~ ✅ (flag de desistência adiada pra após carga histórica)
+- ~~Criar campos calculados: turno, faixa etária~~ ✅
 - ~~Criar modelo do ranking de especialidades no dbt~~ ✅
 - ~~Criar ficha técnica de métricas~~ ✅
 - ~~Criar testes de negócio no dbt (6 testes implementados)~~ ✅
-- ~~Expandir interface de curadoria para cobrir todos os tipos de inconsistência (conversão, lógica de negócio, sequência temporal,integridade)~~ ✅
-- Adicionar JOIN das tabelas `curadoria_decisao_logica` e
-  `curadoria_imputacao_integridade` nos modelos dbt, para que as decisões
-  da curadoria reflitam na `marts.atendimentos_pa`
-- Construir Página 1 no Power BI
+- ~~Expandir interface de curadoria~~ ✅
+- ~~Adicionar JOIN das tabelas de curadoria nos modelos dbt~~ ✅
+- ~~fl_alta_na_meta e minutos_espera_medica calculados no dbt~~ ✅
+- ~~dim_competencia~~ ✅
+- ~~Construir Página 1 no Power BI~~ ✅
 - Carga histórica de ~24 meses
 - Validar Página 1 com dados históricos
 - Construir Páginas 2 a 7 (conforme dados disponíveis na Fase 1)
