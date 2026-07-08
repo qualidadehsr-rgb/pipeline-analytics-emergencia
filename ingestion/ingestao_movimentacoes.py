@@ -120,6 +120,8 @@ df = pd.DataFrame(linhas_normalizadas)
 # resetando a coluna de índice
 df = df.reset_index(drop=True)
 
+#remove a coluna com nome do paciente
+df = df.drop(columns=['NM_PACIENTE'])
 
 #cria coluna da competência no Dataframe
 df["competencia"] = competencia
