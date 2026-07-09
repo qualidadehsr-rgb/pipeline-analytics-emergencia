@@ -76,7 +76,7 @@ def filtrar_novos(cliente, tabela, registros):
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ArrayQueryParameter("teste", "STRING", testes),
-            bigquery.ArrayQueryParameter("competencia", "STRING", competencias)
+            bigquery.ArrayQueryParameter("competencia", "DATE", competencias)
         ]
     )
 
