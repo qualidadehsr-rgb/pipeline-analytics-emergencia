@@ -6,13 +6,13 @@ from google.cloud import bigquery
 # dicionário de testes
 TIPO_POR_TESTE = {
     "conversao_evasao_exclusivos": "logica_negocio",
-    "unique_atendimentos_pa_atend_PA": "integridade",
     "idade_nao_negativa": "integridade",
     "movimentacoes_nulos_invalidos": "integridade",
     "atend_medico_apos_classif_risco": "sequencia_temporal",
     "classif_risco_apos_totem": "sequencia_temporal",
     "fim_atend_medico_apos_inicio": "sequencia_temporal",
     "permanencia_nao_negativa": "sequencia_temporal",
+    "dbt_utils_unique_combination_of_columns_atendimentos_pa_atend_PA__competencia": "integridade",
 }
 
 # leitura do run_results para extração dos testes que falharam
