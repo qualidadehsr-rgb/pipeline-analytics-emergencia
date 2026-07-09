@@ -59,23 +59,39 @@ def montar_registro(cliente, teste_nome, tipo, atendimento, detectado_em):
         "status": "pendente",
     }
 
-def deletar_registros_existentes(cliente, registros):
-    # extrair combinações únicas de competência e teste da lista de registro
-    combinacoes = set()
-    for registro in registros:
-        combinacoes.add((registro["competencia"], registro["teste"]))
+def filtrar_novos(cliente, tabela, registros):
+    # extrair valores únicos de competência e teste da lista de registro
+    testes = list({r["teste"] for r in registros})
+    competencias = list({r["competencia"] for r in registros})
 
-    # percorre o set combinações desempacotando a tupla nas variáveis competencia e teste
-    for competencia, teste in combinacoes:
-        # query para fazer o delete
-        query = f"""
-            DELETE FROM `pipeline-analytics-emergencia.curadoria.curadoria_inconsistencias`
-            WHERE competencia = '{competencia}'
-            AND teste = '{teste}'
-        """
-        # executa a query no BigQuery
-        cliente.query(query).result()
-        print(f"Registros deletados — competencia: {competencia}, teste: {teste}")
+    # query para buscar quais atendimentos já existem na tabela
+    query = f"""
+        SELECT nr_atendimento, teste, competencia
+        FROM `{tabela}`
+        WHERE teste IN UNNEST(@teste)
+        AND competencia IN UNNEST(@competencia)
+    """
+    
+    # job para informar valores como parâmetros seguros
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ArrayQueryParameter("teste", "STRING", testes),
+            bigquery.ArrayQueryParameter("competencia", "STRING", competencias)
+        ]
+    )
+
+    # executa a query e guarda o resultado
+    resultado = cliente.query(query, job_config=job_config).result()
+
+    # conjunto de tuplas com registros que estão na tabela (para comparação)
+    existentes = {(str(row.nr_atendimento), row.teste, row.competencia) for row in resultado}
+    
+    # retorna os registros que não estão nas tuplas existentes (somente os novos)
+    return [
+        r for r in registros
+        if (str(r["nr_atendimento"]), r["teste"], r["competencia"]) not in existentes
+    ]
+
 
 def main():
     caminho_run_results = "/app/pipeline_analytics/target/run_results.json"
@@ -139,15 +155,18 @@ def main():
     
     # verifica se a lista tem algum registro antes de inserir no BigQuery
     if registros:
-        # deleta registros existentes para evitar duplicatas
-        deletar_registros_existentes(cliente, registros)
-        # inseri todos os registros na tabela curadoria_inconsistencias
-        job = cliente.load_table_from_json(registros, tabela)
-        job.result()
-        if job.errors:
-            print(f"Erros ao inserir registros: {job.errors}")
+        # guarda os registros que ainda não existem na tabela
+        registros_novos = filtrar_novos(cliente, tabela, registros)
+        # inseri em lote os registros novos na tabela curadoria_inconsistencias e informa o resultado e erros
+        if registros_novos:
+            job = cliente.load_table_from_json(registros_novos, tabela)
+            job.result()
+            if job.errors:
+                print(f"Erros ao inserir registros: {job.errors}")
+            else:
+                print(f"{len(registros_novos)} registro(s) novo(s) inseridos.")
         else:
-            print(f"{len(registros)} registro(s) inserido(s) na curadoria_inconsistencias.")
+            print("Nenhum registro novo! Todos já estavam na curadoria_inconsistencias.")
 
 if __name__ == "__main__":
     main()
