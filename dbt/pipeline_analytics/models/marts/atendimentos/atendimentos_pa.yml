@@ -2,11 +2,16 @@ version: 2
 
 models:
   - name: atendimentos_pa
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - atend_PA
+                  - competencia
     columns:
       - name: atend_PA
         tests:
           - not_null
-          - unique
       - name: fl_conversao
         tests:
           - not_null
