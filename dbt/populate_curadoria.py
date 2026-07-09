@@ -142,9 +142,10 @@ def main():
         # deleta registros existentes para evitar duplicatas
         deletar_registros_existentes(cliente, registros)
         # inseri todos os registros na tabela curadoria_inconsistencias
-        erros = cliente.insert_rows_json(tabela, registros)
-        if erros:
-            print(f"Erros ao inserir registros: {erros}")
+        job = cliente.load_table_from_json(registros, tabela)
+        job.result()
+        if job.errors:
+            print(f"Erros ao inserir registros: {job.errors}")
         else:
             print(f"{len(registros)} registro(s) inserido(s) na curadoria_inconsistencias.")
 
