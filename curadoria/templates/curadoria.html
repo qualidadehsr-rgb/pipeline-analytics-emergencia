@@ -181,7 +181,8 @@
                     {% endfor %}
                 </table>
             </div>
-
+        {% endif %}
+        {% if competencias %}
             <form action="/finalizar" method="POST">
                 <button type="submit" class="btn btn-finalizar">Finalizar Curadoria</button>
             </form>
