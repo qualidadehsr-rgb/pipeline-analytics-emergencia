@@ -84,7 +84,7 @@ def filtrar_novos(cliente, tabela, registros):
     resultado = cliente.query(query, job_config=job_config).result()
 
     # conjunto de tuplas com registros que estão na tabela (para comparação)
-    existentes = {(str(row.nr_atendimento), row.teste, row.competencia) for row in resultado}
+    existentes = {(str(row.nr_atendimento), row.teste, str(row.competencia)) for row in resultado}
     
     # retorna os registros que não estão nas tuplas existentes (somente os novos)
     return [
