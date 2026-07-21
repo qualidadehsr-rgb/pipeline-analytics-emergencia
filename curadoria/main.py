@@ -55,7 +55,7 @@ def listar_suspeitos():
 
     # buscar suspeitos pendentes da competencia
     query_suspeitos = f"""
-        SELECT id_inconsistencia, tipo, nr_atendimento, detectado_em, competencia, servico
+        SELECT id_inconsistencia, tipo, teste, nr_atendimento, detectado_em, competencia, servico
         FROM {projeto}.curadoria.curadoria_inconsistencias 
         WHERE status = 'pendente'
         AND competencia = '{competencia}'
