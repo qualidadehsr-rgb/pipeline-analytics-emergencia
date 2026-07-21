@@ -167,7 +167,12 @@
                                     <option value="evasao">Evasão</option>
                                 </select>
                                 <input type="text" name="justificativa" placeholder="Justificativa (opcional)">
-                                {% elif caso.tipo == "sequencia_temporal" or caso.tipo == "integridade" %}
+                                {% elif caso.tipo == "sequencia_temporal" %}
+                                <span style="font-size:12px; background:#e8f0fe; color:#1a56db; padding:3px 8px; border-radius:4px; font-weight:600;">Teste: {{ caso.teste }}</span>
+                                <input type="text" name="campo_afetado" placeholder="Campo afetado">
+                                <input type="text" name="valor_original" placeholder="Valor original">
+                                <input type="text" name="valor_imputado" placeholder="Valor corrigido (deixe vazio se não houver correção)">
+                                {% elif caso.tipo == "integridade" %}
                                 <input type="text" name="campo_afetado" placeholder="Campo afetado">
                                 <input type="text" name="valor_original" placeholder="Valor original">
                                 <input type="text" name="valor_imputado" placeholder="Valor corrigido (deixe vazio se não houver correção)">

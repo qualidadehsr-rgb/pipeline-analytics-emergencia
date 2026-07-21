@@ -73,7 +73,10 @@ gcloud builds submit curadoria/ --tag us-east1-docker.pkg.dev/pipeline-analytics
 gcloud run services update curadoria-pipeline-emergencia-service --image us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/curadoria:vX --region us-east1
 ```
 
-> **Atenção:** os passos 1 e 2 devem sempre ser executados em sequência.
+> **Atenção:** os passos 1 e 2 devem sempre ser executados em sequência. Para consultar a última versão:
+> ```bash
+> gcloud artifacts docker tags list us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/curadoria
+> ```
 
 ---
 
@@ -125,6 +128,8 @@ gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
 |---|---|---|---|
 | Após revisar um caso na curadoria, o total de casos pendentes na tela não diminui | Cache de resultado de consulta do BigQuery — o `cliente.query()` retorna dados salvos de uma execução anterior em vez de buscar o estado atual | Adicionado `bigquery.QueryJobConfig(use_query_cache=False)` nas duas queries de `listar_suspeitos()` em `curadoria/main.py` | Verificar se o `job_config` com `use_query_cache=False` está presente nas queries da função afetada |
 | Um caso específico continua aparecendo na lista mesmo após ser decidido (pode passar despercebido, já que o restante da lista parece normal) | Mesma causa acima — cache de query | Mesma solução acima | Confirmar no BigQuery, via `SELECT status FROM curadoria_inconsistencias WHERE id_inconsistencia = '...'`, se o status realmente está `revisado`; se sim, o problema é de cache, não de dado |
+| Botão "Finalizar Curadoria" não aparece quando não há casos pendentes | Botão estava dentro do bloco condicional `{% else %}` que só renderiza quando existem casos suspeitos | Movido para fora do bloco, protegido por `{% if competencias %}` independente | Verificar no template se o botão está fora do `{% endif %}` do bloco de suspeitos |
+| Casos de `sequencia_temporal` não fornecem informação suficiente para revisão | A interface exibe apenas o tipo e o atendimento, sem detalhar qual sequência temporal falhou | Pendente de melhoria — exibir os campos de data/hora envolvidos na inconsistência detectada | Revisar o `populate_curadoria.py` para gravar contexto adicional e o template para exibi-lo |
 
 
 ---
