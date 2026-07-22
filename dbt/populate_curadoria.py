@@ -59,6 +59,16 @@ def montar_registro(cliente, teste_nome, tipo, atendimento, detectado_em):
         "status": "pendente",
     }
 
+# buscar suspeitos de conversão direto na marts
+def buscar_suspeitos_conversao (cliente, projeto):
+    query = f"""
+        select atend_PA, competencia, SERVICO
+        from `{projeto}.marts.atendimentos_pa`
+        where fl_suspeito_conversao = 1
+    """
+    resultado = cliente.query(query).result()
+    return [dict(row) for row in resultado]
+
 def filtrar_novos(cliente, tabela, registros):
     # extrair valores únicos de competência e teste da lista de registro
     testes = list({r["teste"] for r in registros})
@@ -100,9 +110,8 @@ def main():
 
     if not testes_com_falha:
         print("Nenhuma falha encontrada nos testes dbt. Nada a registrar.")
-        return
-    
-    print(f"{len(testes_com_falha)} teste(s) com falha encontrado(s). Iniciando registro na curadoria...")
+    else:
+        print(f"{len(testes_com_falha)} teste(s) com falha encontrado(s). Iniciando registro na curadoria...")
 
     # variável para criar conexão com BigQuery
     cliente = bigquery.Client()
@@ -152,7 +161,15 @@ def main():
             # monta a estrutura dos registros das falhas e guarda na variável
             registro = montar_registro(cliente, teste_nome, tipo, atendimento, detectado_em)
             registros.append(registro)
-    
+
+    # busca suspeitos de conversão direto na marts
+    suspeitos_conversao = buscar_suspeitos_conversao(cliente, "pipeline-analytics-emergencia")
+    print(f"{len(suspeitos_conversao)} suspeito(s) de conversão encontrado(s).")
+
+    for atendimento in suspeitos_conversao:
+        registro = montar_registro(cliente, "fl_suspeito_conversao", "conversao", atendimento, detectado_em)
+        registros.append(registro)
+        
     # verifica se a lista tem algum registro antes de inserir no BigQuery
     if registros:
         # guarda os registros que ainda não existem na tabela
