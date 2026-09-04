@@ -4,6 +4,10 @@ with decisao_logica as(
     from {{ source('curadoria', 'curadoria_decisao_logica') }} as dl
     inner join {{ source('curadoria', 'curadoria_inconsistencias') }} as ci
     on dl.id_inconsistencia = ci.id_inconsistencia
+    qualify row_number() over(
+        partition by ci.nr_atendimento
+        order by dl.decidido_em desc
+    ) = 1
 ),
 
 imputacao_integridade as(
