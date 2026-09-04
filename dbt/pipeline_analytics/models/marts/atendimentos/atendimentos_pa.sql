@@ -95,7 +95,9 @@ atendimento_com_internacoes as(
     lc.ORIGEM_ATEND,
     lc.LEITO as Destino,
     lc.UNIDADE as Unidade,
-    lc.Tipo
+    lc.Tipo,
+    lc.DT_HR_ATENDIMENTO,
+    u.DT_HR_TOTEM_RECEP
     from ultimo_atendimento as u
     left join internacao_leito_certo as lc
     on u.CD_PACIENTE = lc.COD_PACIENTE
@@ -108,6 +110,16 @@ atendimento_com_internacoes as(
     ) = 1
 ),
 
+atendimento_com_internacoes_unico as(
+    select *
+        except(DT_HR_ATENDIMENTO, DT_HR_TOTEM_RECEP)
+    from atendimento_com_internacoes
+    qualify row_number() over(
+        partition by CD_ATENDIMENTO
+        order by timestamp_diff(DT_HR_ATENDIMENTO, DT_HR_TOTEM_RECEP, minute) asc
+    ) = 1
+),
+
 possivel_conversao as(
     select
     u.CD_ATENDIMENTO,
@@ -115,7 +127,9 @@ possivel_conversao as(
     lc.ORIGEM_ATEND,
     lc.LEITO as Destino,
     lc.UNIDADE as Unidade,
-    lc.Tipo
+    lc.Tipo,
+    lc.DT_HR_ATENDIMENTO,
+    u.DT_HR_TOTEM_RECEP
     from ultimo_atendimento as u
     left join internacao_leito_certo as lc
     on u.CD_PACIENTE = lc.COD_PACIENTE
@@ -125,6 +139,15 @@ possivel_conversao as(
     qualify row_number() over(
         partition by lc.ATENDIMENTO
         order by timestamp_diff(lc.DT_HR_ATENDIMENTO, u.DT_HR_TOTEM_RECEP, minute) asc
+    ) = 1
+),
+
+possivel_conversao_unico as (
+    select * except(DT_HR_ATENDIMENTO, DT_HR_TOTEM_RECEP)
+    from possivel_conversao
+    qualify row_number() over(
+        partition by CD_ATENDIMENTO
+        order by timestamp_diff(DT_HR_ATENDIMENTO, DT_HR_TOTEM_RECEP, minute) asc
     ) = 1
 ),
 
@@ -251,11 +274,11 @@ final as (
         else datetime_diff(a.DT_HR_ALTA, a.DT_HR_TOTEM_RECEP, minute) end as minutos_permanencia_total,
        a.competencia
     from atendimentos as a
-    left join atendimento_com_internacoes as ai
+    left join atendimento_com_internacoes_unico as ai
     on a.CD_ATENDIMENTO = ai.CD_ATENDIMENTO
     left join retorno_48h as r
     on a.CD_ATENDIMENTO = r.CD_ATENDIMENTO
-    left join possivel_conversao as pc
+    left join possivel_conversao_unico as pc
     on a.CD_ATENDIMENTO = pc.CD_ATENDIMENTO
     left join {{ source('curadoria', 'curadoria_conversao') }} as cur
     on a.CD_ATENDIMENTO = cast(cur.CD_ATENDIMENTO as INT64)
