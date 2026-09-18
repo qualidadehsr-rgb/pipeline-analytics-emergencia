@@ -412,6 +412,65 @@ correta aqui.
 
 ---
 
+## Indicadores — Página 3 (Perfil do Paciente)
+
+Indicadores calculados no modelo `atendimentos_pa`, por atendimento, sem
+tabela agregada dedicada (diferente da Página 2), já que os blocos desta
+página não sofrem o mesmo problema de combinação estatística que levou
+`percentis_jornada` a existir.
+
+### `faixa_etaria` e `ordem_faixa_etaria`
+
+`faixa_etaria` já documentada anteriormente (campo calculado a partir de
+`IDADE`, em 11 faixas). Nesta página, ganhou uma coluna auxiliar numérica,
+`ordem_faixa_etaria` (1 a 11, uma por faixa), exclusivamente para ordenação
+correta no eixo de visuais — sem ela, o Power BI ordena a faixa etária
+alfabeticamente (`"12 a 14"` antes de `"3 a 5"`), quebrando a sequência
+lógica da pirâmide etária.
+
+### Tratamento de nulos — `SEXO` e `grupo_cid`
+
+Mesmo padrão já adotado em `faixa_sla`: nulo vira categoria explícita, não é
+excluído nem escondido.
+
+| Campo | Regra | Categoria explícita |
+|---|---|---|
+| `SEXO` | Nulo ou vazio (~0,04% dos casos) | `Não Informado` |
+| `grupo_cid` | Sem correspondência em `seed_cid_capitulo` (atendimento sem CID registrado) | `Não Classificado` |
+
+### Pirâmide etária
+
+Faixa etária cruzada com sexo, contagem de atendimentos. Implementada como
+gráfico de barras clusterizadas nativo (não um visual customizado), o efeito
+de pirâmide é obtido multiplicando a contagem de um dos sexos por -1 e
+aplicando um formato de exibição customizado (`#,##0;#,##0`) para ocultar o
+sinal negativo, tanto na medida quanto no eixo do visual.
+
+### CIDs mais frequentes
+
+Ranking por `CID` (código individual, não `grupo_cid`), decisão deliberada:
+como `grupo_cid` já existe como filtro global da página, um ranking por
+código individual oferece mais valor analítico do que repetir a mesma
+granularidade agregada do filtro.
+
+### Cruzamento perfil × desfecho
+
+Implementado via 2 Parâmetros de Campo (Field Parameters), não como tabela
+pré-calculada:
+- **Dimensão** (eixo): `faixa_etaria`, `SEXO` ou `UF`
+- **Medida** (valor): Taxa de Conversão, Taxa de Evasão, Taxa de Retorno 48h,
+  Taxa de Alta na Meta, ou Permanência Mediana P50
+
+**Nota técnica — P50 formatado:** a medida de permanência usada no parâmetro
+retorna o valor numérico puro (minutos), obrigatório para que o gráfico de
+barras calcule a altura corretamente, uma medida que retorna texto
+formatado (`"Xh Ymin"`) não pode definir altura de barra. A versão formatada
+em texto é exibida via campo de Dica de Ferramenta do visual, sempre visível
+ao passar o mouse, independente de qual medida estiver selecionada no
+parâmetro.
+
+---
+
 ## Histórico de Alterações
 
 | Data | Alteração |
@@ -419,3 +478,4 @@ correta aqui.
 | 2026-05-29 | Criação do documento com flags de negócio e KPIs da Página 1 |
 | 2026-08-14 | Adição dos KPIs da Página 2 |
 | 2026-08-17 | Página 2 finalizada: `faixa_sla` com 4 categorias (nulos tratados), `percentis_jornada` e `volume_jornada` expandidos para as 6 dimensões de filtro + `grupo_cid`, card de P50 e tabela de Duração por Etapa migrados para cálculo sob demanda via `PERCENTILEX.INC` |
+| 2026-09-16 | Página 3 finalizada: pirâmide etária, CIDs mais frequentes e cruzamento perfil × desfecho via Parâmetros de Campo. `SEXO` e `grupo_cid` com nulos tratados como categoria explícita. |
