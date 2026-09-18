@@ -167,7 +167,11 @@ final as (
        a.CD_ATENDIMENTO as atend_PA,
        a.CD_PACIENTE,
        a.IDADE,
-       a.SEXO,
+       case
+        when a.SEXO is null then 'Não informado'
+        when a.SEXO = '' then 'Não informado'
+        else a.SEXO
+       end as Sexo,
        a.CEP,
        a.CIDADE,
        a.UF,
@@ -199,7 +203,10 @@ final as (
        ai.Destino,
        ai.Unidade,
        ai.Tipo,
-       trim(initcap(cid_map.capitulo_cid)) as grupo_cid,
+       case
+        when cid_map.capitulo_cid is null then 'Sem CID'
+        else trim(initcap(cid_map.capitulo_cid))
+       end as grupo_cid,
        case
         when a.DT_HR_TOTEM_RECEP is null then null
         when extract(hour from a.DT_HR_TOTEM_RECEP) between 7 and 11 then 'Manhã'
@@ -219,6 +226,19 @@ final as (
         when a.IDADE between 40 and 49 then '40 a 49'
         when a.IDADE between 50 and 59 then '50 a 59'
         else '60 ou mais' end as faixa_etaria,
+       case
+        when a.IDADE is null then null
+        when a.IDADE between 0 and 2 then 1
+        when a.IDADE between 3 and 5 then 2
+        when a.IDADE between 6 and 8 then 3
+        when a.IDADE between 9 and 11 then 4
+        when a.IDADE between 12 and 14 then 5
+        when a.IDADE between 15 and 19 then 6
+        when a.IDADE between 20 and 29 then 7
+        when a.IDADE between 30 and 39 then 8
+        when a.IDADE between 40 and 49 then 9
+        when a.IDADE between 50 and 59 then 10
+        else 11 end as ordem_faixa_etaria, 
        case
         when a.flag_prevalece = 'conversao' then 1
         when a.flag_prevalece = 'evasao' then 0

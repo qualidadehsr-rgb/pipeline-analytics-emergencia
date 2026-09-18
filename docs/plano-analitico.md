@@ -112,16 +112,73 @@ DH_ATEND_MEDICO. Campo calculado turno ✅ criado na marts. Campo `grupo_cid`
 capitalização e espaços em `grupo_cid` ✅ (sessão 20/08).
 
 ### Página 3 — Perfil do Paciente
-Características demográficas: pirâmide etária, distribuição por sexo, mapa 
-de demanda por localidade (CEP/cidade/UF), CIDs mais frequentes. Cruzamento 
-de perfil com indicadores (ex: faixa etária × taxa de conversão).
+Características demográficas dos pacientes atendidos: pirâmide etária e 
+CIDs mais frequentes. Cruzamento de perfil demográfico com desfechos de 
+negócio, para investigar se existe relação entre quem procura a emergência 
+e o resultado do atendimento.
+
+**Blocos avaliados e removidos da versão final (falta de espaço, não de 
+viabilidade técnica):**
+- **Distribuição por sexo** (rosca), construída e funcional, removida por 
+  redundância: a mesma informação já aparece cruzada com idade na pirâmide.
+- **Mapa/ranking de demanda por localidade**, construído e funcional 
+  (barras horizontais por `CIDADE`, escala logarítmica para lidar com a 
+  concentração de Cuiabá/Várzea Grande frente às demais cidades, solução 
+  reaproveitável caso o bloco volte em versão futura). Removido por espaço; 
+  a pergunta "de onde vem a demanda geograficamente" deixa de ser respondida 
+  por um visual dedicado nesta página, mas segue parcialmente acessível via 
+  `UF` como uma das dimensões do cruzamento perfil × desfecho.
+
+**Escopo do cruzamento perfil × desfecho:** limitado às variáveis 
+demográficas (faixa etária, sexo, UF), `grupo_cid` participa da página só 
+como ranking de frequência (Bloco 2), sem cruzar com desfecho, para não 
+duplicar o que as Páginas 4 (Retornos e Evasões) e 5 (Conversão e 
+Gravidade) já aprofundam com CID e classificação de risco. Pelo mesmo 
+motivo, classificação de risco entra na página apenas como filtro, não 
+como bloco visual dedicado.
+
+**CID individual, não agrupado:** o Bloco 2 rankeia por `CID` (código + 
+descrição), não por `grupo_cid`, o filtro de Grupo CID já cobre a visão 
+agregada, então o gráfico oferece mais valor mostrando o CID específico de 
+maior volume.
+
+**Localidade — bairro avaliado e descartado:** o campo `BAIRRO` existe na 
+fonte, mas investigação encontrou 793 CEPs associados a mais de um bairro 
+distinto na base, parte variação de escrita, parte ambiguidade geográfica 
+real (sem resposta única sem uma regra de negócio de desambiguação). 
+Retomar bairro fica registrado como melhoria futura, condicionada a uma 
+regra de desambiguação CEP → bairro.
+
+**Tratamento de nulos:** `SEXO` vazio (~0,04% dos casos) e `grupo_cid` nulo 
+(atendimentos sem CID registrado) exibidos como categoria explícita, 
+"Não Informado" e "Não Classificado", respectivamente, em vez de 
+excluídos, mesmo padrão já adotado em `faixa_sla`. `IDADE` e `CIDADE` não 
+têm valores nulos na base.
 
 **Perguntas que responde:**
 - Qual o perfil dos pacientes que mais procuram a emergência?
-- De onde vem a demanda geograficamente?
 - Existe relação entre perfil demográfico e desfecho?
 
-**Campo calculado:** faixa etária ✅ criado na marts.
+**Blocos visuais:**
+1. Pirâmide etária, barras clusterizadas nativas, com valor negativo em 
+   um dos sexos para gerar o efeito de pirâmide. Requer coluna auxiliar 
+   `ordem_faixa_etaria` (numérica) para ordenação correta do eixo, já que 
+   `faixa_etaria` como texto ordena alfabeticamente por padrão.
+2. CIDs mais frequentes, barras horizontais por `CID` (ranking individual, 
+   sem cruzamento com desfecho)
+3. Cruzamento perfil × desfecho, gráfico de barras único com 2 
+   Parâmetros de Campo (Field Parameters): um seletor troca a dimensão 
+   no eixo (faixa etária, sexo ou UF), outro troca a medida (taxa de 
+   conversão, evasão, retorno 48h, alta na meta, ou permanência mediana 
+   P50), cobre as 15 combinações possíveis sem repetir gráfico. A medida 
+   de P50 usa o valor numérico puro (minutos) para altura da barra; a 
+   versão formatada (texto, "Xh Ymin") aparece via Dica de Ferramenta.
+
+**Filtros:** competência, especialidade, convênio, classificação de risco, 
+grupo CID
+
+**Campos calculados:** faixa etária ✅, `ordem_faixa_etaria` ✅ — ambos 
+criados na marts.
 
 ### Página 4 — Retornos e Evasões
 Análise de pacientes que retornaram em 48h: motivo do retorno, se internaram 
