@@ -162,6 +162,14 @@ retorno_48h as(
     and a1.CD_ATENDIMENTO != a2.CD_ATENDIMENTO
 ),
 
+conversao_curada_unica as(
+    select *
+    from {{ source('curadoria', 'curadoria_conversao') }}
+    qualify row_number() over(
+        partition by CD_ATENDIMENTO order by decidido_em desc
+    ) = 1
+),
+
 final as (
     select
        a.CD_ATENDIMENTO as atend_PA,
@@ -300,7 +308,7 @@ final as (
     on a.CD_ATENDIMENTO = r.CD_ATENDIMENTO
     left join possivel_conversao_unico as pc
     on a.CD_ATENDIMENTO = pc.CD_ATENDIMENTO
-    left join {{ source('curadoria', 'curadoria_conversao') }} as cur
+    left join conversao_curada_unica as cur
     on a.CD_ATENDIMENTO = cast(cur.CD_ATENDIMENTO as INT64)
     left join {{ ref('seed_cid_capitulo') }} as cid_map
     on split(a.CID, ' - ')[offset(0)] = cid_map.codigo_cid

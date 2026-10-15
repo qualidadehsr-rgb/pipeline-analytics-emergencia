@@ -24,7 +24,9 @@ gcloud run services update ingestao-pipeline-emergencia-service --image us-east1
 
 ## Deploy da imagem do dbt
 
-**Quando usar:** sempre que houver alteração em qualquer arquivo dentro da pasta `dbt/`.
+**Quando usar:** sempre que houver alteração em qualquer arquivo dentro da pasta `dbt/` (modelos, testes, macros, seeds). Código mergeado na `main` **não chega à produção sozinho**: o job mensal roda o código que está dentro da imagem, e ele só muda quando uma imagem nova é construída e o job é atualizado.
+
+**Antes do build:** estar na `main` atualizada (`git pull origin main`) e com a árvore limpa (`git status`). O build empacota a **pasta local** `dbt/`, não o GitHub.
 
 1. Limpar pastas temporárias antes do build:
 ```bash
@@ -42,10 +44,14 @@ gcloud builds submit --tag us-east1-docker.pkg.dev/pipeline-analytics-emergencia
 gcloud run jobs update dbt-pipeline-job --image us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/dbt-pipeline:vX --region us-east1
 ```
 
+4. Executar o job (ver "Execução manual do dbt Job") e conferir, no BigQuery, a aba **Esquema** da `marts.atendimentos_pa`: as colunas novas existem e o total de campos bate com o esperado.
+
 > Substituir `vX` pela próxima versão sequencial. Para consultar a última versão:
 > ```bash
 > gcloud artifacts docker tags list us-east1-docker.pkg.dev/pipeline-analytics-emergencia/pipeline-ingestao/dbt-pipeline
 > ```
+
+> **Versão atual:** `v43` (construída em 15/10/2026). A `v42`, de 14/08/2026, estava atrasada em relação à `main` (ver "Problemas conhecidos").
 
 ---
 
@@ -56,6 +62,8 @@ gcloud run jobs update dbt-pipeline-job --image us-east1-docker.pkg.dev/pipeline
 ```bash
 gcloud run jobs execute dbt-pipeline-job --region us-east1
 ```
+
+> Sempre informar `--region us-east1`; sem ele o `gcloud` pergunta a região.
 
 ---
 
@@ -118,7 +126,6 @@ gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/dbt_run_2026
 ```bash
 gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
 ```
----
 
 ---
 
@@ -134,9 +141,10 @@ gcloud storage rm gs://pipeline-analytics-emergencia-ingestao/locks/*
 | Teste dbt novo aparece como `nao_mapeado` na coluna "Tipo" da curadoria | `populate_curadoria.py` usa um dicionário fixo (`TIPO_POR_TESTE`) para classificar cada teste; testes novos não incluídos nele caem no valor padrão `"nao_mapeado"` | Adicionada a entrada correspondente em `TIPO_POR_TESTE`; os registros já inseridos incorretamente foram corrigidos via `UPDATE` direto na `curadoria_inconsistencias` | Ao criar qualquer teste dbt novo destinado à curadoria, adicionar a entrada em `TIPO_POR_TESTE` (e, se aplicável, em `TESTES_SEM_CORRECAO`) antes do deploy — não depois |
 | Um teste dbt novo, ao ser criado, gera um volume grande de casos na curadoria de uma vez, incluindo competências antigas já dadas como concluídas | `stg_atendimentos` reprocessa a tabela Raw inteira a cada execução (sem filtro de competência) — um teste novo é aplicado a todo o histórico já carregado na primeira vez que roda, não só à competência do mês corrente | Comportamento esperado, não é bug — nenhuma ação corretiva aplicada | Antes de criar um teste novo, considerar avisar quem for revisar a curadoria que um volume maior que o usual pode aparecer na primeira execução após o deploy |
 | `git push` falha com "Invalid username or token. Password authentication is not supported" | Token de acesso pessoal do GitHub expirado — pode estar salvo em cache no Gerenciador de Credenciais do Windows ou embutido na URL do remote (`git remote -v`) | Gerado novo token em `github.com/settings/tokens`, e atualizado via `git remote set-url origin https://usuario:novo_token@github.com/...` | Gerar novo token com escopo `repo`, verificar se o token está embutido na URL do remote (`git remote -v`) antes de mexer no Gerenciador de Credenciais do Windows — a credencial pode estar em qualquer um dos dois lugares |
-
 | Um atendimento aparece com mais de uma linha de internação (ou de suspeita de conversão) na `atendimentos_pa`, mesmo sem duplicata na origem | `QUALIFY ROW_NUMBER() OVER(PARTITION BY ...)` particionando pela chave da tabela "de dentro" do JOIN (ex: `lc.ATENDIMENTO`, o nº da internação) em vez da chave "de fora" (`u.CD_ATENDIMENTO`, o nº do atendimento), garante 1 linha por internação, não 1 linha por atendimento, então mais de uma internação candidata no mesmo atendimento sobrevive ao filtro | Corrigido em `atendimentos_pa.sql` adicionando um CTE de dedupe posterior (`_unico`), que reparticiona pela chave certa, sem alterar a lógica original do CTE de origem | Ao escrever `QUALIFY ROW_NUMBER() ... PARTITION BY` logo após um JOIN, confirmar que a partição está na chave da tabela que deve ficar única no resultado final, não na chave da tabela do outro lado do JOIN |
 | Contagem de suspeitos de conversão (`fl_suspeito_conversao`) muda inesperadamente entre execuções do dbt, sem mudança nos dados de origem | Um mesmo `nr_atendimento` tinha mais de uma decisão registrada em `curadoria_decisao_logica` (caso reaberto e revisado de novo), o CTE `decisao_logica` em `int_curadoria_correcoes.sql` não filtrava pra manter só uma, então o JOIN duplicava a linha | Adicionado `QUALIFY ROW_NUMBER() OVER(PARTITION BY ci.nr_atendimento ORDER BY dl.decidido_em DESC) = 1` no CTE `decisao_logica`, mantém sempre a decisão mais recente | Antes de investigar um caso de contagem divergente na curadoria, checar se `nr_atendimento` tem mais de uma linha em `curadoria_decisao_logica`, reabertura de caso é uma causa legítima e recorrente, não incomum |
+| Atualização do Power BI falha com "A coluna 'X' da tabela não foi encontrada" (ex: `grupo_cid` na `dim_grupo_cid`); as demais consultas ficam em "Aguardando por outras consultas" (efeito cascata) | O `dbt-pipeline-job` rodava uma imagem desatualizada (`v42`, de 14/08/2026) em relação à `main`. A carga mensal recriou a `marts.atendimentos_pa` com o código antigo: a tabela ficou com 48 colunas, sem `grupo_cid` e `ordem_faixa_etaria` (a `main` produz 50) | Build da `v43` a partir da `main` limpa, atualização do job (`gcloud run jobs update`) e execução manual. No Power Query: "Atualizar Visualização" antes de "Fechar e Aplicar" | Comparar o esquema da `marts.atendimentos_pa` no BigQuery com o `final` do `atendimentos_pa.sql` e a data de criação da imagem usada pelo job com a data das últimas alterações em `dbt/`. Regra: toda mudança em modelo dbt exige imagem nova + atualização do job (ver "Deploy da imagem do dbt") |
+| Teste `dbt_utils_unique_combination_of_columns` (`atend_PA` + `competencia`) falha em `atendimentos_pa`; o atendimento aparece em 2 linhas idênticas | O `LEFT JOIN` do `final` com a `curadoria_conversao` lia a `source` direto, sem deduplicar. O atendimento 1705671 tinha 2 linhas na `curadoria_conversao` (mesma decisão, `descartado`, registradas com 23 s de diferença pelo mesmo usuário em 05/10/2026), e o join multiplicou a linha. Causa provável das 2 linhas: envio duplicado na interface de curadoria (hipótese, não verificada) | Criado o CTE `conversao_curada_unica` em `atendimentos_pa.sql` (`QUALIFY ROW_NUMBER() OVER(PARTITION BY CD_ATENDIMENTO ORDER BY decidido_em DESC) = 1`) e o join do `final` passou a ler esse CTE, mantendo o alias `cur`. Validado localmente: teste de unicidade passa | Contar as linhas do atendimento em cada origem (`stg_atendimentos`, `int_curadoria_correcoes`, `curadoria_conversao`) para achar onde a duplicação nasce. Melhoria pendente: impedir envio duplicado de decisão na interface de curadoria |
 
 ---
 
