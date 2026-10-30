@@ -1,7 +1,7 @@
 # Plano Analítico — Emergência
 
 **Data:** 2026-05-21  
-**Última atualização:** 2026-06-30  
+**Última atualização:** 2026-10-30  
 **Status:** Em construção
 
 ## Objetivo
@@ -181,22 +181,98 @@ grupo CID
 criados na marts.
 
 ### Página 4 — Retornos e Evasões
-Análise de pacientes que retornaram em 48h: motivo do retorno, se internaram 
-na segunda vez, comparação do CID entre as visitas. Análise de evasões: perfil 
-de quem evade, se retornou depois, em quanto tempo, pelo mesmo motivo. 
-Pacientes com classificação grave que evadiram.
+Análise de quem evade e de quem retorna: perfil de quem evade, quanto 
+esperou, quando evade, se voltou depois, em quantos dias e pelo mesmo 
+diagnóstico; e, entre os que retornaram em 48h, se foram internados na 
+segunda visita.
 
-**Análise temporal:** heatmap hora × dia da semana para evasão e retorno 
-por horário. Revela padrões de subdimensionamento de equipe, gargalos e 
-horários críticos. Campos já disponíveis na marts (`DT_HR_TOTEM_RECEP`, 
-`turno`, flags de evasão e retorno). Pode exigir colunas auxiliares no dbt 
-(hora e dia da semana extraídos).
+**Layout (fechado em 2026-10-28):** duas linhas de três blocos, sem faixa 
+de cards (as taxas de evasão e de retorno 48h já são KPIs da Página 1 e 
+aparecem em cada bloco como taxa, com a contagem no tooltip).
+
+**Linha 1 — Evasões**
+1. **Quem evade:** barras com seletor de dimensão por Parâmetro de Campo: 
+   classificação de risco, especialidade ou CID (`cod_cid`, 10 mais 
+   frequentes, com o CID completo no tooltip). A taxa de evasão define a 
+   barra e a contagem aparece no tooltip, porque os grupos graves têm 
+   poucos casos (ex: Vermelho tem 35 atendimentos em 11 meses). Responde às 
+   perguntas sobre gravidade, especialidade prevalente e CID.
+2. **Onde o evadido espera mais:** P50 do tempo de cada etapa da jornada, 
+   comparando evadidos e demais pacientes, com o P90 no tooltip. 
+   Substituiu o bloco "Onde evade" (última etapa registrada), pois 99,9% 
+   dos 3.000 evadidos têm Início Médico e Alta preenchidos: a última etapa 
+   registrada não distingue os casos.
+3. **Quando evade:** mapa de calor por faixa de 2 horas × dia da semana, 
+   com a taxa na cor e a contagem no tooltip. Faixas de 2 horas (84 
+   células), e não hora × dia (168 células): com um mês filtrado, hora × 
+   dia daria cerca de 1,6 evasões por célula, o que é ruído.
+
+**Linha 2 — Retornos**
+4. **Depois da evasão:** barras por faixa de dias até o retorno (até 2 
+   dias, 3 a 7, 8 a 30, não voltou), divididas em mesmo CID, outro CID e 
+   CID não informado. Considera só evasões com 30 dias ou mais de dados 
+   posteriores, pois uma evasão recente ainda não teve tempo de retornar. O 
+   título do visual informa a regra.
+5. **Retorno 48h e internação:** barras 100% empilhadas (internou ou não 
+   na 2ª visita), para pacientes que retornaram em 48h sem internação na 
+   1ª visita. Seletor de dimensão da 1ª visita: classificação de risco, 
+   motivo de alta ou especialidade, com o número de pacientes (`n`) ao 
+   lado de cada grupo. O CID não entra no seletor: há cerca de 50 a 70 
+   retornos por mês espalhados por mais de 500 CIDs, e uma proporção com 
+   1 ou 2 pacientes não significa nada.
+6. **Quando retorna em 48h:** mapa de calor por turno × dia da semana, 
+   com a taxa na cor e a contagem no tooltip. Turno, e não hora, porque o 
+   retorno em 48h é raro demais para a grade completa.
+
+**Filtros:** competência, especialidade, convênio e grupo CID. A 
+classificação de risco entra como conteúdo (seletor e clique nos visuais), 
+não como segmentação. A página abre com todos os meses selecionados.
 
 **Perguntas que responde:**
-- Por que os pacientes que retornaram em 48h não internaram na primeira consulta?
-- Quem evadiu retornou? Em quanto tempo? Pelo mesmo motivo?
+- Quem evade esperou mais que os demais, e em qual etapa?
 - Pacientes graves estão evadindo? Estão retornando?
-- Em quais horários e dias da semana a evasão é mais frequente?
+- Que especialidade e que CID prevalecem entre os evadidos?
+- Quem evadiu retornou? Em quanto tempo? Pelo mesmo motivo?
+- Em quais horários e dias da semana a evasão e o retorno são mais frequentes?
+- Entre quem retornou em 48h sem ser internado, quantos foram internados 
+  na 2ª visita, e com que perfil?
+
+**Ajustes em relação ao texto original da página:**
+- "Por que os pacientes que retornaram em 48h não internaram na primeira 
+  consulta?" passou a ser respondida pelo perfil e pelo desfecho da 2ª 
+  visita. Não há campo de motivo nos dados, então o "por quê" exato não é 
+  respondível.
+- "Comparação do CID entre as visitas" só se aplica à evasão. O retorno em 
+  48h exige o mesmo CID por definição, então a comparação seria sempre igual.
+
+**Decisões de qualidade de dados (2026-10-28 a 2026-10-30):**
+- **CID `-` (diagnóstico não informado), 2.348 atendimentos (4,7%):** deixa 
+  de contar em `fl_retorno_48h` (total de 655 para 612 no período) e 
+  aparece como `CID NÃO INFORMADO` em `comparacao_cid_proxima_visita`, pois 
+  `-` igual a `-` não prova o mesmo motivo.
+- **Nomes longos:** sete valores encurtados no `final` do `atendimentos_pa`, 
+  sem colunas duplicadas, para caber no eixo dos visuais (ver ficha técnica 
+  de métricas). As páginas 1 a 3 passam a exibir os nomes novos.
+- **`MOTIVO_ALTA` nulo (5.533, cerca de 11%):** vira `NÃO INFORMADO`, 
+  campo que não foi preenchido.
+- **Registros administrativos:** 15 pares de atendimentos no mesmo minuto 
+  (CID `-`, motivo de alta não informado, horário com segundos `:00`) não 
+  entram como retorno em 48h.
+- **Paciente de alto volume:** o paciente com 72 atendimentos em 11 meses 
+  é um caso de dor lombar recorrente e permanece na análise. Os retornos em 
+  48h estão espalhados entre muitos pacientes.
+
+**Campos calculados (dbt, `atendimentos_pa`):** `hora_chegada` ✅, 
+`dia_semana` ✅, `ordem_dia_semana` ✅, `cod_cid` ✅, 
+`minutos_ate_proxima_visita` ✅, `comparacao_cid_proxima_visita` ✅, 
+`fl_conversao_proxima_visita` ✅ (todos em 2026-10-30). Os campos de 
+próxima visita usam função de janela por paciente, e o nulo indica a 
+última visita do paciente.
+
+**Pendências:** deploy da imagem do dbt com os campos novos (build, 
+atualização do job e execução); construção dos seis blocos no Power BI; 
+ordenação de `dia_semana` pela coluna `ordem_dia_semana`; medidas DAX de 
+contagem (`Total de Evasões PA`, `Total de Retornos 48h PA`) ✅ criadas.
 
 ### Página 5 — Conversão e Gravidade
 Análise aprofundada da conversão: perfil de quem converte por classificação 
@@ -232,7 +308,8 @@ Projeção de demanda de atendimentos para próximas semanas/meses usando
 séries temporais. Previsão por especialidade para dimensionamento de equipe.
 
 **Análise temporal:** heatmap de demanda por hora × dia da semana. Revela 
-padrões de volume que alimentam o dimensionamento de equipe por turno.
+padrões de volume que alimentam o dimensionamento de equipe por turno. Usa 
+os campos `hora_chegada` e `dia_semana`, criados para a Página 4.
 
 **Perguntas que responde:**
 - Qual a demanda provável para o próximo mês?
@@ -273,11 +350,12 @@ Documento formal (`docs/ficha-tecnica-metricas.md`) com definição, fórmula,
 regra, exclusões e owner de cada métrica do painel. Métricas documentadas:
 
 - Taxa de conversão
-- Retorno 48h
+- Retorno 48h (sem o CID `-`, desde 2026-10-30)
 - Taxa de evasão
 - Taxa de alta na meta (permanência)
 - Tempo de espera médica
 - Ranking de especialidades
+- Campos da Página 4 (horário, próxima visita, `cod_cid`)
 
 **Objetivo:** eliminar disputas de número e garantir que todas as áreas 
 usem a mesma definição. Deve ser criado antes da entrega da Página 1.
@@ -304,6 +382,7 @@ da liberação dos dados para o BI. Detalhes na ADR-017.
 | Fim após início do atendimento | `FIM_ATD_MEDICO` >= `INI_ATD_MEDICO` |
 | Conversão e evasão exclusivos | `fl_conversao` e `fl_evasao` não podem ser 1 simultaneamente |
 | Idade não negativa | `IDADE` >= 0 |
+| Valores aceitos em `dia_semana` | Só `Dom`, `Seg`, `Ter`, `Qua`, `Qui`, `Sex` e `Sáb` |
 
 ## Observabilidade Analítica
 
@@ -335,7 +414,9 @@ Notificação automática quando algo estiver fora do esperado.
 - Carga histórica de ~24 meses
 - Validar Página 1 com dados históricos
 - ~~Construir Página 2 (Jornada do Paciente)~~ ✅ (sessão 20/08)
-- Construir Páginas 3 a 7 (conforme dados disponíveis na Fase 1)
+- ~~Construir Página 3 (Perfil do Paciente)~~ ✅ (sessão 16/09)
+- Página 4 (Retornos e Evasões): ~~camada dbt~~ ✅ (30/10); deploy da imagem e construção no Power BI pendentes
+- Construir Páginas 5 a 7 (conforme dados disponíveis na Fase 1)
 
 ### Fase 2 — Exames e prescrição
 Incorporar ao pipeline novas fontes do sistema MV:

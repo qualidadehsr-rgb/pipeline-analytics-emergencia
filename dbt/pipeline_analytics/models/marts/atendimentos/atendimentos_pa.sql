@@ -160,6 +160,7 @@ retorno_48h as(
     and a2.DT_ATENDIMENTO > a1.DT_ATENDIMENTO
     and a2.DT_ATENDIMENTO <= date_add(a1.DT_ATENDIMENTO, interval 2 day)
     and a1.CD_ATENDIMENTO != a2.CD_ATENDIMENTO
+    and a1.CID != '-'
 ),
 
 conversao_curada_unica as(
@@ -170,7 +171,7 @@ conversao_curada_unica as(
     ) = 1
 ),
 
-final as (
+base as (
     select
        a.CD_ATENDIMENTO as atend_PA,
        a.CD_PACIENTE,
@@ -184,16 +185,29 @@ final as (
        a.CIDADE,
        a.UF,
        a.CONVENIO,
-       a.SERVICO,
        case
-        when a.COR_CLASSIF is null then 'Ausência de Classificação'
-        when a.COR_CLASSIF = '' then 'Ausência de Classificação'
+        when a.SERVICO = 'ORTOPEDIA/TRAUMATOLOGIA' then 'ORTOPEDIA'
+        else a.SERVICO
+        end as SERVICO,
+       case
+        when a.COR_CLASSIF is null then 'SEM CLASSIFICAÇÃO'
+        when a.COR_CLASSIF = '' then 'SEM CLASSIFICAÇÃO'
         else a.COR_CLASSIF
        end as COR_CLASSIF,
        a.PRESTADOR,
        a.ESPECIALIDADE,
        a.CID,
-       a.MOTIVO_ALTA,
+       split(a.CID, ' - ')[offset(0)] as cod_cid,
+       case
+        when a.MOTIVO_ALTA is null then 'NÃO INFORMADO'
+        when a.MOTIVO_ALTA = '' then 'NÃO INFORMADO'
+        when a.MOTIVO_ALTA = 'INTERNACAO EM UTI' then 'INTER. UTI'
+        when a.MOTIVO_ALTA = 'INTERNACAO EM APARTAMENTO' then 'INTER. APTO'
+        when a.MOTIVO_ALTA = 'TRANSFERIDO PARA OUTRO SERVICO' then 'TRANSF. SERVIÇO'
+        when a.MOTIVO_ALTA = 'ENCAMINHADO PARA OUTRO ESPECIALISTA' then 'ENC. ESPECIALISTA'
+        when a.MOTIVO_ALTA = 'RECUSA DE TRATAMENTO' then 'RECUSA TRATAMENTO'
+        else a.MOTIVO_ALTA
+       end as MOTIVO_ALTA, 
        a.DT_ATENDIMENTO,
        a.DT_HR_TOTEM_RECEP,
        a.CHAMADA_CLASSIFICACAO,
@@ -234,6 +248,17 @@ final as (
         when a.IDADE between 40 and 49 then '40 a 49'
         when a.IDADE between 50 and 59 then '50 a 59'
         else '60 ou mais' end as faixa_etaria,
+       extract(hour from a.DT_HR_TOTEM_RECEP) as hora_chegada,
+       case 
+        when a.DT_HR_TOTEM_RECEP is null then null
+        when extract(dayofweek from a.DT_HR_TOTEM_RECEP) = 1 then 'Dom'
+        when extract(dayofweek from a.DT_HR_TOTEM_RECEP) = 2 then 'Seg'
+        when extract(dayofweek from a.DT_HR_TOTEM_RECEP) = 3 then 'Ter'
+        when extract(dayofweek from a.DT_HR_TOTEM_RECEP) = 4 then 'Qua'
+        when extract(dayofweek from a.DT_HR_TOTEM_RECEP) = 5 then 'Qui'
+        when extract(dayofweek from a.DT_HR_TOTEM_RECEP) = 6 then 'Sex'
+        else 'Sáb' end as dia_semana,
+       extract(dayofweek from a.DT_HR_TOTEM_RECEP) as ordem_dia_semana,
        case
         when a.IDADE is null then null
         when a.IDADE between 0 and 2 then 1
@@ -312,6 +337,23 @@ final as (
     on a.CD_ATENDIMENTO = cast(cur.CD_ATENDIMENTO as INT64)
     left join {{ ref('seed_cid_capitulo') }} as cid_map
     on split(a.CID, ' - ')[offset(0)] = cid_map.codigo_cid
+),
+
+final as(
+    select
+        *,
+        datetime_diff(
+            lead(DT_HR_TOTEM_RECEP)
+            over(partition by CD_PACIENTE order by DT_HR_TOTEM_RECEP),
+            DT_HR_TOTEM_RECEP, minute) as minutos_ate_proxima_visita,
+        case
+         when lead(DT_HR_TOTEM_RECEP) over(partition by CD_PACIENTE order by DT_HR_TOTEM_RECEP) is null then null
+         when lead(CID) over(partition by CD_PACIENTE order by DT_HR_TOTEM_RECEP) = '-' or CID = '-' then 'CID NÃO INFORMADO'
+         when lead(CID) over(partition by CD_PACIENTE order by DT_HR_TOTEM_RECEP) = CID then 'MESMO CID'
+         else 'OUTRO CID'
+        end as comparacao_cid_proxima_visita,
+        lead(fl_conversao) over(partition by CD_PACIENTE order by DT_HR_TOTEM_RECEP) as fl_conversao_proxima_visita
+    from base
 )
 
 select * from final
