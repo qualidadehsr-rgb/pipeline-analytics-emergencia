@@ -2,6 +2,8 @@
 
 **Data:** 2026-05-29
 
+**Última atualização:** 2026-10-30
+
 **Status:** Em construção — expande conforme novas páginas forem desenvolvidas
 
 **Fonte de dados:** `marts.atendimentos_pa`
@@ -67,10 +69,20 @@ taxa de conversão enquanto não confirmados.
 
 ### `fl_retorno_48h`
 
-Indica que o paciente retornou ao PA em menos de 48 horas após uma alta anterior.
+Indica que o atendimento foi seguido de um retorno do mesmo paciente ao PA,
+pelo mesmo diagnóstico, em até 2 dias de calendário. A flag marca o
+**primeiro** atendimento (o que gerou o retorno), e não o atendimento de retorno.
 
-**Regra:** O código do paciente possui outro atendimento registrado dentro de
-48 horas antes do atendimento atual.
+**Regra:** Existe outro atendimento do mesmo `CD_PACIENTE`, com o mesmo `CID`,
+cuja data (`DT_ATENDIMENTO`) é posterior à do atendimento atual e no máximo
+2 dias depois. A janela é medida em dias de calendário, não em horas.
+
+**Exclusão — CID não informado (desde 2026-10-30):** atendimentos com `CID = '-'`
+(diagnóstico não informado) não geram retorno, porque `-` igual a `-` não prova
+que o motivo foi o mesmo. Atendimentos com `CID` nulo também ficam de fora, já
+que uma comparação com nulo nunca é verdadeira. A mudança reduziu o total do
+período (nov/2025 a set/2026) de 655 para 612 retornos, e nenhum retorno tem
+mais CID `-`.
 
 **Valor 1:** Retorno identificado.
 
@@ -79,6 +91,10 @@ Indica que o paciente retornou ao PA em menos de 48 horas após uma alta anterio
 **Interpretação:** Evento negativo. Pode indicar alta precoce, resolução
 incompleta do quadro ou erro no diagnóstico inicial. Análise aprofundada
 reservada para página dedicada no painel.
+
+**Limitação:** como a regra exige o mesmo CID, uma volta em menos de 48h com
+outro CID não é marcada (ex.: um paciente que voltou em 20h com diagnóstico
+diferente). Isso é uma escolha de definição, e não uma falha de dado.
 
 ---
 
@@ -223,8 +239,8 @@ ou página dedicada.
 
 ### KPI 5 — Taxa de Retorno em 48h
 
-**Definição:** Percentual de atendimentos cujo paciente retornou ao PA em
-menos de 48 horas após uma alta anterior.
+**Definição:** Percentual de atendimentos seguidos de um retorno do mesmo
+paciente ao PA, pelo mesmo diagnóstico informado, em até 2 dias de calendário.
 
 **Fórmula:**
 ```
@@ -235,7 +251,9 @@ menos de 48 horas após uma alta anterior.
 
 **Denominador:** Total de atendimentos no período (`COUNT(atend_PA)`).
 
-**Exclusões:** Nenhuma.
+**Exclusões:** Atendimentos com `CID = '-'` (diagnóstico não informado) ou
+`CID` nulo nunca são marcados como retorno (ver `fl_retorno_48h`), mas continuam
+no denominador.
 
 **Tolerância:** 0,05%. Não é uma meta a ser atingida — é o limite aceitável.
 O ideal é 0%, sabendo que eventos esporádicos podem ocorrer.
@@ -471,6 +489,117 @@ parâmetro.
 
 ---
 
+## Indicadores — Página 4 (Retornos e Evasões)
+
+**Status:** camada dbt concluída em 2026-10-30; construção dos visuais no Power BI
+pendente. Todos os campos abaixo são calculados no modelo `atendimentos_pa`, por
+atendimento, sem tabela agregada dedicada.
+
+### `hora_chegada`, `dia_semana` e `ordem_dia_semana`
+
+Extraídos de `DT_HR_TOTEM_RECEP`, para os mapas de calor por horário.
+
+| Campo | Regra |
+|---|---|
+| `hora_chegada` | Hora do dia (0 a 23) da chegada ao totem |
+| `dia_semana` | Texto: `Dom`, `Seg`, `Ter`, `Qua`, `Qui`, `Sex`, `Sáb`. Nulo se `DT_HR_TOTEM_RECEP` for nulo |
+| `ordem_dia_semana` | Número de 1 (domingo) a 7 (sábado), exclusivamente para ordenar `dia_semana` no Power BI (Classificar por Coluna) |
+
+**Validação:** `DT_HR_TOTEM_RECEP` não tem nulos nas 11 competências carregadas
+(nov/2025 a set/2026). Os 7 pares `dia_semana` × `ordem_dia_semana` e as 24 horas
+somam os 50.082 atendimentos. O teste `accepted_values` protege o `dia_semana`.
+
+**Granularidade dos mapas de calor (decisão de 2026-10-28):** a evasão (cerca de
+3.000 casos em 11 meses, média de 273 por mês) daria cerca de 1,6 casos por célula
+em hora × dia com um único mês filtrado, o que é ruído. Por isso o mapa de
+evasão usa faixas de 2 horas × dia da semana (84 células), e o de retorno em 48h
+usa turno × dia da semana (28 células, cerca de 22 casos por célula no período
+completo). A taxa define a cor e a contagem aparece no tooltip. A página deve abrir
+com todos os meses selecionados.
+
+### Campos de próxima visita
+
+Calculados por função de janela sobre os atendimentos do mesmo paciente
+(`partition by CD_PACIENTE`), em ordem cronológica de `DT_HR_TOTEM_RECEP`. O valor
+nulo em qualquer um deles significa que o atendimento é a **última visita do
+paciente**: são 29.990 nulos, igual ao número de pacientes distintos.
+
+| Campo | Definição |
+|---|---|
+| `minutos_ate_proxima_visita` | Minutos entre a chegada deste atendimento e a chegada do próximo do mesmo paciente |
+| `comparacao_cid_proxima_visita` | Comparação do CID entre este atendimento e o próximo (ver valores abaixo) |
+| `fl_conversao_proxima_visita` | Valor de `fl_conversao` do próximo atendimento do mesmo paciente (1 = a visita seguinte terminou em internação) |
+
+**Valores de `comparacao_cid_proxima_visita`:**
+
+| Valor | Condição |
+|---|---|
+| (nulo) | Não há próxima visita |
+| `CID NÃO INFORMADO` | O CID desta visita ou o da próxima é `-` |
+| `MESMO CID` | Os dois CIDs são iguais e informados |
+| `OUTRO CID` | Os dois CIDs são informados e diferentes |
+
+A ordem das condições é parte da regra: o teste do `-` vem antes da igualdade, senão
+`-` seguido de `-` contaria como `MESMO CID`. O mesmo critério da exclusão do CID `-`
+em `fl_retorno_48h`. Distribuição em 2026-10-30: `OUTRO CID` 16.124, `MESMO CID` 2.457,
+`CID NÃO INFORMADO` 1.511 e nulo 29.990 (total 50.082). A coluna usa o prefixo
+`comparacao_`, e não `fl_`, porque devolve texto, e não 0 ou 1.
+
+**Observações sobre os dados:**
+- 16 atendimentos têm `minutos_ate_proxima_visita = 0`. Quinze deles formam 15 pares
+  de registros administrativos (CID `-`, motivo de alta não informado, horário com
+  segundos `:00`), e um é um atendimento comum. Esses 15 pares caem em
+  `CID NÃO INFORMADO` e não entram em `fl_retorno_48h`.
+- A paciente de maior volume (72 atendimentos em 11 meses) é um caso de dor lombar
+  recorrente, e permanece na análise.
+- Os retornos em 48h estão espalhados entre muitos pacientes (cerca de 608 pacientes
+  para 655 retornos antes da exclusão do `-`), então poucos pacientes recorrentes
+  não concentram o indicador.
+
+**Limitação de acompanhamento:** uma evasão recente ainda não teve tempo de
+retornar. O bloco "Depois da evasão" deve considerar só evasões com 30 dias ou mais
+de dados posteriores, e o título do visual informa isso.
+
+### `cod_cid`
+
+Código do CID, sem a descrição (`split(CID, ' - ')[0]`). É o rótulo do eixo nos
+visuais, e a coluna `CID` original continua inteira para o tooltip. Validada:
+1.831 valores distintos, iguais aos de `CID`, sem nulos, no máximo 4 caracteres. O
+texto completo do CID chega a 189 caracteres, e por isso não serve como rótulo
+de eixo.
+
+### Padronização de nomes (2026-10-28)
+
+Para caber no eixo dos visuais (cerca de 18 caracteres), sete valores foram
+encurtados no `final` do `atendimentos_pa`. Eles **substituem** as colunas
+originais, sem colunas duplicadas, e o `stg_atendimentos` não foi alterado. As
+páginas 1 a 3 passam a exibir os nomes novos.
+
+| Coluna | Nome original | Nome novo |
+|---|---|---|
+| `COR_CLASSIF` | Ausência de Classificação | SEM CLASSIFICAÇÃO |
+| `SERVICO` | ORTOPEDIA/TRAUMATOLOGIA | ORTOPEDIA |
+| `MOTIVO_ALTA` | INTERNACAO EM UTI | INTER. UTI |
+| `MOTIVO_ALTA` | INTERNACAO EM APARTAMENTO | INTER. APTO |
+| `MOTIVO_ALTA` | TRANSFERIDO PARA OUTRO SERVICO | TRANSF. SERVIÇO |
+| `MOTIVO_ALTA` | ENCAMINHADO PARA OUTRO ESPECIALISTA | ENC. ESPECIALISTA |
+| `MOTIVO_ALTA` | RECUSA DE TRATAMENTO | RECUSA TRATAMENTO |
+
+`MOTIVO_ALTA` nulo ou vazio (5.533 atendimentos, cerca de 11%) passou a ser `NÃO INFORMADO`,
+por ser um campo que não foi preenchido, no mesmo padrão de `SEXO` e `COR_CLASSIF`. A
+regra de `fl_evasao` não é afetada: ela lê o motivo de alta de entrada, e `EVASAO`
+não foi alterado.
+
+### Evasões: perfil de jornada
+
+Entre os 3.000 atendimentos com `fl_evasao = 1`, 99,9% têm Início Médico, Fim Médico
+e Alta preenchidos, e 97,4% têm as etapas de classificação e cadastro. A evasão,
+neste registro, não é sair antes de ser visto, e por isso a última etapa registrada
+não distingue os casos. O bloco "Onde o evadido espera mais" compara os tempos por
+etapa (P50, com P90 no tooltip) entre evadidos e demais pacientes.
+
+---
+
 ## Histórico de Alterações
 
 | Data | Alteração |
@@ -479,3 +608,5 @@ parâmetro.
 | 2026-08-14 | Adição dos KPIs da Página 2 |
 | 2026-08-17 | Página 2 finalizada: `faixa_sla` com 4 categorias (nulos tratados), `percentis_jornada` e `volume_jornada` expandidos para as 6 dimensões de filtro + `grupo_cid`, card de P50 e tabela de Duração por Etapa migrados para cálculo sob demanda via `PERCENTILEX.INC` |
 | 2026-09-16 | Página 3 finalizada: pirâmide etária, CIDs mais frequentes e cruzamento perfil × desfecho via Parâmetros de Campo. `SEXO` e `grupo_cid` com nulos tratados como categoria explícita. |
+| 2026-10-15 | `atendimentos_pa` passa a ter uma linha por atendimento: o join com `curadoria_conversao` deduplica por atendimento, mantendo a decisão mais recente |
+| 2026-10-30 | `fl_retorno_48h` deixa de contar CID `-` (total do período de 655 para 612). Definição da flag corrigida: ela marca o atendimento que gerou o retorno, e a janela é de 2 dias de calendário. Página 4: campos de horário, de próxima visita e `cod_cid`; padronização de nomes; `MOTIVO_ALTA` nulo vira `NÃO INFORMADO` |
