@@ -223,11 +223,23 @@ base as (
        a.INI_ATD_MEDICO,
        a.FIM_ATD_MEDICO,
        a.DT_HR_ALTA,
-       ai.ATENDIMENTO as atend_internacao,
-       ai.ORIGEM_ATEND,
-       ai.Destino,
-       ai.Unidade,
-       ai.Tipo,
+       coalesce(ai.ATENDIMENTO, case
+                                when cur.decisao = 'confirmado' then safe_cast(nullif(cur.atend_internacao, '') as INT64)
+                                end
+                ) as atend_internacao,
+       coalesce(ai.ORIGEM_ATEND, pc.ORIGEM_ATEND) as ORIGEM_ATEND,
+       coalesce(ai.Destino, case
+                            when cur.decisao = 'confirmado' then nullif(cur.destino, '')
+                            end
+                ) as Destino,
+       coalesce(ai.Unidade, case
+                            when cur.decisao = 'confirmado' then nullif(cur.unidade, '')
+                            end
+                ) as Unidade,
+       coalesce(ai.Tipo, case
+                         when cur.decisao = 'confirmado' then nullif(cur.tipo, '')
+                         end
+                ) as Tipo,
        case
         when cid_map.capitulo_cid is null then 'Sem CID'
         else trim(initcap(cid_map.capitulo_cid))
